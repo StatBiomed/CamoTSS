@@ -21,7 +21,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib', 'statsmodels>=0.11.1']
 
 setup(
-    name='sctss',
+    name='scTSS',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -48,10 +48,11 @@ setup(
     # simple. Or you can use find_packages().
     packages=find_packages(),
 
-    # entry_points={
-    #       'console_scripts': [
-    #           ],
-    #       }, 
+    entry_points={
+          'console_scripts': [
+            'scTSS = scTSS.scTSS:main'
+            ],
+          }, 
 
     # List run-time dependencies here.  These will be installed by pip when
     # your project is installed. For an analysis of "install_requires" vs pip's
@@ -65,7 +66,7 @@ setup(
             #'sphinx == 1.8.3',
             'sphinx_bootstrap_theme']},
 
-    py_modules = ['sctss']
+    py_modules = ['scTSS']
 
     # buid the distribution: python setup.py sdist
     # upload to pypi: twine upload dist/...
