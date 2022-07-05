@@ -113,6 +113,17 @@ class get_TSS_count():
         vardf.columns=['transcript_id']
         vardf=vardf.merge(countdf,on='transcript_id')
         adata.var=vardf
+        #hope sanpy can fixed index problem and allow users equal directly by using dataframe
+        # adata.var['transcript_id']=vardf['transcript_id']
+        # adata.var['gene_id']=vardf['gene_id']
+        # adata.var['gene_name']=vardf['gene_name']
+        # adata.var['Chromosome']=vardf['Chromosome']
+        # adata.var['Strand']=vardf['Strand']
+        # adata.var['TSS']=vardf['Strand']
+        # adata.var['down']=vardf['down']
+        # adata.var['up']=vardf['up']  
+        # adata.var['count']=vardf['count']   
+
 
         sc_output_h5ad=self.count_out_dir+'sc_TSS_count.h5ad'
         adata.write(sc_output_h5ad)

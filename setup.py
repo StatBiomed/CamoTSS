@@ -18,7 +18,8 @@ exec(open("./scTSS/version.py").read())
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
     
-reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib', 'statsmodels>=0.11.1']
+reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib','anndata>=0.6',
+'scanpy>=1.5','pysam>=0.15.2','brie>=2.2.0','pandas>=0.23.0','scikit-learn>=0.23']
 
 setup(
     name='scTSS',
@@ -50,7 +51,10 @@ setup(
 
     entry_points={
           'console_scripts': [
-            'scTSS = scTSS.scTSS:main'
+            'scTSS = scTSS.bin.scTSS_main:main',
+            'scTSS-count=scTSS.bin.count:main',
+            'scTSS-quant=scTSS.bin.quant:main',
+            'scTSS-plot=scTSS.bin.plot:main'
             ],
           }, 
 
@@ -58,7 +62,9 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    
+
+    python_requires='>=3.5',
+
     install_requires=reqs,
 
     extras_require={

@@ -1,8 +1,8 @@
 from optparse import OptionParser,OptionGroup
-from .version import __version__
+from ..version import __version__
 import sys
-from .utils.build_ref import get_TSSref,get_generef
-from .utils.get_counts import get_TSS_count
+from ..utils.build_ref import get_TSSref,get_generef
+from ..utils.get_counts import get_TSS_count
 import pyranges as pr
 import os
 import pandas as pd
@@ -28,7 +28,7 @@ def main():
     
     #this means that if users do not input any argument, then direct produce help. then end.
     if len(sys.argv[1:]) == 0:
-        print('Welcome to scTSS v%s!\n'%(__version__))
+        print('Welcome to scTSS-count v%s!\n'%(__version__))
         print("use -h or --help for help on argument.")
         sys.exit(1)
 
@@ -75,25 +75,5 @@ def main():
         getTSScount=get_TSS_count(generefpath,tssrefpath,options.bam_file,out_dir,minCount,isoformNumber)
         scadata=getTSScount.produce_sclevel()
 
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-    
-    
         
     
