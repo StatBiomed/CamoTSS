@@ -220,11 +220,14 @@ class get_TSS_count():
 
         print('Start annotation the pid is %s, gene_id=%s' % (getpid(), geneid))
 
-        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
-        #     f.write('%s\n'%geneid)
+        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+            f.write('%s\n'%geneid)
 
         
         temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
+        # print(temprefdf)
+        # exit(0)
+
         cost_mtx=np.zeros((2,temprefdf.shape[0]))
         for i in range(2):
             for j in range(temprefdf.shape[0]):
@@ -236,14 +239,9 @@ class get_TSS_count():
         transcriptls=list(temprefdf.iloc[col_ind,:]['transcript_id'])
 
 
+
         #do quality control
         tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
-        print('hello')
-        print(tssls)
-        print(altTSSdict['ENSG00000169504'][1][0])
-        exit(0)
-
-
 
         transcriptdict={}
         if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<100:
@@ -259,8 +257,8 @@ class get_TSS_count():
             transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1])
 
 
-        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
-        #     f.write('%s\n'%geneid)
+        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+            f.write('%s\n'%geneid)
         
 
         print('Finish annotation the pid is %s, gene_id=%s' % (getpid(), geneid))        
@@ -285,6 +283,7 @@ class get_TSS_count():
             for k, v in d.items():  # d.items() in Python 3+
                 super_dict.setdefault(k, []).append(v)
 
+        #print(transcriptdictls)
         #notice, a dictionary contain a list. so there are only one element. then we can select cellbarcode or TSS
         print('TSS annotation Time elapsed',int(time.time()-ctime),'seconds.')
         return super_dict
