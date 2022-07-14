@@ -18,8 +18,13 @@ def main():
     group0=OptionGroup(parser,"Optional arguments")
     group0.add_option("--minCount",type="int",dest="minCount",default=30,
     help="Minimum counts for each transcript in all cells [default: 30]")
-    group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
-    help="No. of isoform keeping in for each gene [default: 2]")
+    # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
+    # help="No. of isoform keeping in for each gene [default: 2]")
+    group0.add_option('--nproc','-p',dest='nproc',default=4,
+    help='Number of subprocesses [default: 4]')
+    group0.add_option('--maxReadCount',dest='maxReadCount',default=50000,
+    help='For each gene, the maxmium read count kept for clustering[default: 50000]')
+
 
     parser.add_option_group(group0)
     (options, args) = parser.parse_args()
@@ -72,7 +77,7 @@ def main():
         print("Error: Need --bam for aligned file.")
         sys.exit(1)
     else:
-        getTSScount=get_TSS_count(generefpath,tssrefpath,options.bam_file,out_dir,minCount,isoformNumber)
+        getTSScount=get_TSS_count(generefpath,tssrefpath,options.bam_file,out_dir,n_proc,minCount,maxReadCount)
         scadata=getTSScount.produce_sclevel()
 
         
