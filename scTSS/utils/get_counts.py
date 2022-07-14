@@ -137,14 +137,14 @@ class get_TSS_count():
         for geneid,resls in zip(self.generefdf.index,results):
             readinfodict[geneid]=resls  
 
-        print(readinfodict)
-        exit(0)
+
         #delete gene whose reads length is smaller than 2. TODO:filtering long reads length should also finish here.
         for i in list(readinfodict.keys()):
             if len(readinfodict[i])>self.maxReadCount:
                 readinfodict[i]=random.sample(readinfodict[i],self.maxReadCount)
             if len(readinfodict[i])<2:
                 del readinfodict[i] 
+
 
 
         # lenls=[]
@@ -165,10 +165,10 @@ class get_TSS_count():
 
         geneid=success[0]
         readinfodict=success[1]
-        # print(readinfodict)
+        # print("hello")
+        # print(len(readinfodict))
         # exit(0)
         
-
         altTSSls=[]
 
         clusterModel = AgglomerativeClustering(n_clusters=None,linkage='complete',distance_threshold=100)
@@ -195,8 +195,8 @@ class get_TSS_count():
         altTSSls=[]
         inputpar=[]
         readls=list(readinfodict.keys())
-        
-
+        for i in readls:
+            inputpar.append((i,readinfodict))
 
         with multiprocessing.Pool(self.nproc) as pool:
             altTSSls=pool.map_async(self._do_clustering,inputpar).get()
@@ -205,7 +205,7 @@ class get_TSS_count():
             altTSSdict[geneidSec]=reslsSec
         #print(len(altTSSdict))
         altTSSdict={k: v for k, v in altTSSdict.items() if v}
-        print(altTSSdict)
+        #print(altTSSdict)
 
         print('Do clustering Time elapsed',int(time.time()-ctime),'seconds.')
         return altTSSdict
@@ -216,8 +216,13 @@ class get_TSS_count():
         geneid=inputpar[0]
         altTSSdict=inputpar[1]
         # print(len(altTSSdict))
+        geneid='ENSG00000169504'
 
         print('Start annotation the pid is %s, gene_id=%s' % (getpid(), geneid))
+
+        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+        #     f.write('%s\n'%geneid)
+
         
         temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
         cost_mtx=np.zeros((2,temprefdf.shape[0]))
@@ -230,8 +235,16 @@ class get_TSS_count():
         row_ind, col_ind = linear_sum_assignment(cost_mtx)
         transcriptls=list(temprefdf.iloc[col_ind,:]['transcript_id'])
 
+
         #do quality control
         tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
+        print('hello')
+        print(tssls)
+        print(altTSSdict['ENSG00000169504'][1][0])
+        exit(0)
+
+
+
         transcriptdict={}
         if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<100:
             transcriptdict[transcriptls[0]]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1])
@@ -244,6 +257,11 @@ class get_TSS_count():
         else:
             newname2=str(geneid)+'_newTSS_2'
             transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1])
+
+
+        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+        #     f.write('%s\n'%geneid)
+        
 
         print('Finish annotation the pid is %s, gene_id=%s' % (getpid(), geneid))        
         return transcriptdict

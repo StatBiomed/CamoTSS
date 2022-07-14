@@ -11,6 +11,7 @@ import pandas as pd
 def main():
     parser = OptionParser()
     parser.add_option('--gtf','-g',dest='gtf_file',default=None,help='The annotation gtf file for your analysing species.')
+    parser.add_option('--cdrFile','-c',dest='cdrFile',default=None,help='The file include cell barcode which users want to keep in the downstream analysis.Actually, it can be the same file input in the scTSS-quant')
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
    
@@ -20,7 +21,7 @@ def main():
     help="Minimum counts for each transcript in all cells [default: 30]")
     # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
     # help="No. of isoform keeping in for each gene [default: 2]")
-    group0.add_option('--nproc','-p',dest='nproc',default=4,
+    group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
     help='Number of subprocesses [default: 4]')
     group0.add_option('--maxReadCount',dest='maxReadCount',default=50000,
     help='For each gene, the maxmium read count kept for clustering[default: 50000]')
@@ -42,13 +43,19 @@ def main():
     if options.out_dir is None:
         print("Warning: no outDir provided, we use $bamfilePath/scTSS\n")
         out_dir = os.path.dirname(os.path.abspath(options.bam_file)) + "/scTSS"
-    elif os.path.dirname(options.out_dir) == "":
-        out_dir= "./" + options.out_dir
+    # elif os.path.dirname(options.out_dir) == "":
+    #     out_dir= "./" + options.out_dir
     else:
         out_dir = options.out_dir
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     #print(out_dir)
+
+    if options.cdrFile is None:
+        print("Error: Need --cdrFile for cell barcode file.")
+        sys.exit(1)
+
+
         
         
     #gtf file
@@ -67,7 +74,13 @@ def main():
 
     bam_file=options.bam_file
     minCount=options.minCount
-    isoformNumber=options.isoformNumber
+    #isoformNumber=options.isoformNumber
+    cellBarcodePath=options.cdrFile
+    n_proc=options.nproc
+    maxReadCount=options.maxReadCount
+
+
+
 
 
 
@@ -77,7 +90,7 @@ def main():
         print("Error: Need --bam for aligned file.")
         sys.exit(1)
     else:
-        getTSScount=get_TSS_count(generefpath,tssrefpath,options.bam_file,out_dir,n_proc,minCount,maxReadCount)
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount)
         scadata=getTSScount.produce_sclevel()
 
         
