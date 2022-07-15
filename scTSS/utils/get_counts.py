@@ -216,7 +216,7 @@ class get_TSS_count():
         geneid=inputpar[0]
         altTSSdict=inputpar[1]
         # print(len(altTSSdict))
-        geneid='ENSG00000169504'
+
 
         print('Start annotation the pid is %s, gene_id=%s' % (getpid(), geneid))
 
@@ -278,28 +278,48 @@ class get_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             transcriptdictls=pool.map_async(self._do_anno_and_filter,inputpar).get()
 
-        super_dict = {}
+        # super_dict = {}
+        # for d in transcriptdictls:
+        #     for k, v in d.items():  
+        #         super_dict.setdefault(k, []).append(v)
+
+        extendls=[]
         for d in transcriptdictls:
-            for k, v in d.items():  # d.items() in Python 3+
-                super_dict.setdefault(k, []).append(v)
+            extendls.extend(list(d.items()))
 
         #print(transcriptdictls)
         #notice, a dictionary contain a list. so there are only one element. then we can select cellbarcode or TSS
         print('TSS annotation Time elapsed',int(time.time()-ctime),'seconds.')
-        return super_dict
+        return extendls
+
+
+    def get_transcriptls(self,eachtranscript):
+        transcriptid=eachtranscript[0]
+        cellID,count=np.unique(eachtranscript[1][1],return_counts=True)
+        transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
+        transcriptdf.set_index('cell_id',inplace=True)
+        return transcriptdf
+
 
 
 
     def produce_sclevel(self):
-        newdict=self._TSS_annotation()
-        transcriptdfls=[]
-        for i in newdict.keys():
-            #print(twoInfodict[i][1])
-            cellID,count=np.unique(newdict[i][0][1],return_counts=True)
-            transcriptdf=pd.DataFrame({'cell_id':cellID,i:count})
-            transcriptdf.set_index('cell_id',inplace=True)
-            transcriptdfls.append(transcriptdf)
-        #print(transcriptdfls)
+        extendls=self._TSS_annotation()
+        #transcriptdfls=[]
+        pool = multiprocessing.Pool(processes=self.nproc)
+
+        with multiprocessing.Pool(self.nproc) as pool:
+            transcriptdfls=pool.map_async(self.get_transcriptls,extendls).get()
+
+
+        # for i in range(0,len(extendls)):
+        #     transcriptid=extendls[i][0]       
+        #     #print(transcriptid)
+        #     cellID,count=np.unique(extendls[i][1][1],return_counts=True)
+        #     transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
+        #     transcriptdf.set_index('cell_id',inplace=True)
+        #     transcriptdfls.append(transcriptdf)
+        print(len(transcriptdfls))
         finaldf=reduce(lambda x,y: x.join(y,how='outer'), transcriptdfls )
         finaldf.fillna(0,inplace=True)
         adata=ad.AnnData(finaldf)  
