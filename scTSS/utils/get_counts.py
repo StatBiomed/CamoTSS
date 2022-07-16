@@ -17,7 +17,7 @@ from sklearn.cluster import KMeans
 from collections import defaultdict
 from os import getpid
 import random
-
+import pickle
 
 
 
@@ -86,7 +86,7 @@ class get_TSS_count():
 
     def _getreads(self,bamfilePath,geneid):
 
-        print('Get_reads the pid is %s, gene_id=%s' % (getpid(), geneid))
+        #print('Get_reads the pid is %s, gene_id=%s' % (getpid(), geneid))
         #fetch reads1 in gene 
         samFile, _chrom = check_pysam_chrom(bamfilePath,'chr'+str(self.generefdf.loc[geneid]['Chromosome']))
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
@@ -138,7 +138,7 @@ class get_TSS_count():
             readinfodict[geneid]=resls  
 
 
-        #delete gene whose reads length is smaller than 2. TODO:filtering long reads length should also finish here.
+        #delete gene whose reads length is smaller than 
         for i in list(readinfodict.keys()):
             if len(readinfodict[i])>self.maxReadCount:
                 readinfodict[i]=random.sample(readinfodict[i],self.maxReadCount)
@@ -156,6 +156,12 @@ class get_TSS_count():
 
         print('Get reads Time elapsed',int(time.time()-ctime),'seconds.')
 
+        outfilename=self.count_out_dir+'fetch_reads.pkl'
+
+        with open(outfilename,'wb') as f:
+            pickle.dump(readinfodict,f)
+
+
         return readinfodict
 
 
@@ -164,24 +170,63 @@ class get_TSS_count():
     def _do_clustering(self,success):
 
         geneid=success[0]
-        readinfodict=success[1]
-        # print("hello")
-        # print(len(readinfodict))
-        # exit(0)
-        
+        readinfodict=success[1]        
         altTSSls=[]
 
-        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='complete',distance_threshold=100)
+        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
         posiarray=np.array([t[0] for t in readinfodict[geneid]]).reshape(-1,1)
         CBarray=np.array([t[1] for t in readinfodict[geneid]]).reshape(-1,1)
         clusterModel=clusterModel.fit(posiarray)
         labels=clusterModel.labels_
         label,count=np.unique(labels,return_counts=True)
         selectlabel=label[count>self.minCount]
+
+        
         if len(selectlabel)>=2:
             selectlabel=label[np.argpartition(count,-2)[-2:]]
             altTSSls=[[posiarray[labels==selectlabel[0]],CBarray[labels==selectlabel[0]]],[posiarray[labels==selectlabel[1]],CBarray[labels==selectlabel[1]]]]
 
+            #print('start')
+            # # print(np.min(altTSSls[0][0]))
+            # # print(np.max(altTSSls[0][0]))
+            # posls=[posiarray[labels==selectlabel[0]],posiarray[labels==selectlabel[1]]]
+            # print(posls)
+            # exit(0)
+
+
+            # distance1=np.max(altTSSls[0][0])-np.min(altTSSls[0][0])
+            # distance2=np.max(altTSSls[1][0])-np.min(altTSSls[1][0])
+            # if np.max(altTSSls[0][0])<np.min(altTSSls[1][0]):
+            #     cluster_distance=np.min(altTSSls[1][0])-np.max(altTSSls[0][0])
+            # elif np.max(altTSSls[1][0])<np.min(altTSSls[0][0]):
+            #     cluster_distance=np.min(altTSSls[0][0])-np.min(altTSSls[1][0])
+            #print(distance)
+
+            # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/distance_average.txt','a') as f:
+            #     f.write('gene\t%s\tdistance1\t%i\tdistance2\t%i\tcluster_distance\t%i\n'%(geneid,distance1,distance2,cluster_distance))
+
+
+            # cluster1=altTSSls[0][0]
+            # cluster2=altTSSls[1][0]
+
+            # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/altTSSnp.txt','a') as f:
+            #     f.write('%\t%i\tdistance2\t%i\tcluster_distance\t%i\n'%(cluster1,cluster2))
+
+            
+
+
+            # print(np.max(altTSSls[0][0])-np.min(altTSSls[0][0]))
+            # print(np.max(altTSSls[1][0])-np.min(altTSSls[1][0]))
+            # print(np.min(altTSSls[1][0])-np.max(altTSSls[0][0]))
+            # print(np.min(altTSSls[0][0])-np.max(altTSSls[1][0]))
+            #print('end')
+
+
+
+            # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/length.txt','a') as f:
+            #     len1=len(labels[labels==selectlabel[0]])
+            #     len2=len(labels[labels==selectlabel[1]])
+            #     f.write('%i\n%i'%(len1,len2))
         return altTSSls
 
 
@@ -207,6 +252,10 @@ class get_TSS_count():
         altTSSdict={k: v for k, v in altTSSdict.items() if v}
         #print(altTSSdict)
 
+        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/test/altTSSnp_average.pkl','wb') as f:
+        #     pickle.dump(altTSSdict,f)
+
+
         print('Do clustering Time elapsed',int(time.time()-ctime),'seconds.')
         return altTSSdict
 
@@ -218,10 +267,10 @@ class get_TSS_count():
         # print(len(altTSSdict))
 
 
-        print('Start annotation the pid is %s, gene_id=%s' % (getpid(), geneid))
+        #print('Start annotation the pid is %s, gene_id=%s' % (getpid(), geneid))
 
-        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
-            f.write('%s\n'%geneid)
+        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+        #     f.write('%s\n'%geneid)
 
         
         temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
@@ -257,11 +306,11 @@ class get_TSS_count():
             transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1])
 
 
-        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
-            f.write('%s\n'%geneid)
+        # with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/annotation_gene.txt','a') as f:
+        #     f.write('%s\n'%geneid)
         
 
-        print('Finish annotation the pid is %s, gene_id=%s' % (getpid(), geneid))        
+        #print('Finish annotation the pid is %s, gene_id=%s' % (getpid(), geneid))        
         return transcriptdict
 
 
@@ -286,31 +335,64 @@ class get_TSS_count():
         extendls=[]
         for d in transcriptdictls:
             extendls.extend(list(d.items()))
+        
 
-        #print(transcriptdictls)
+
+
+        d={'transcript_id':[transcript[0] for transcript in extendls],'TSS_start':[np.min(transcript[1][0]) for transcript in extendls],
+        'TSS_end':[np.max(transcript[1][0]) for transcript in extendls]}
+
+
+        regiondf=pd.DataFrame(d)
+
+        # print(regiondf)
+
+        # exit(0)
         #notice, a dictionary contain a list. so there are only one element. then we can select cellbarcode or TSS
         print('TSS annotation Time elapsed',int(time.time()-ctime),'seconds.')
-        return extendls
+        return extendls,regiondf
+
+
 
 
     def get_transcriptls(self,eachtranscript):
+        
         transcriptid=eachtranscript[0]
+        #print('Get_reads the pid is %s, gene_id=%s' % (getpid(), transcriptid))
+        #print(eachtranscript[0])
+        #transcriptdf=pd.DataFrame(pd.Series(eachtranscript[1][1][:,0]).value_counts(),columns=[eachtranscript[0]])
+        #print(transcriptdf)
+
+        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/anno_transcript.txt','a') as f:
+            f.write('%s\n'%transcriptid)
+
+
         cellID,count=np.unique(eachtranscript[1][1],return_counts=True)
         transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
         transcriptdf.set_index('cell_id',inplace=True)
+
+        with open('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/anno_transcript.txt','a') as f:
+            f.write('%s\n'%transcriptid)
+
+
+
+        #print('finish the pid is %s, gene_id=%s' % (getpid(), transcriptid))
         return transcriptdf
 
 
 
 
     def produce_sclevel(self):
-        extendls=self._TSS_annotation()
+        ctime=time.time()
+        extendls,regiondf=self._TSS_annotation()
         #transcriptdfls=[]
         pool = multiprocessing.Pool(processes=self.nproc)
 
         with multiprocessing.Pool(self.nproc) as pool:
             transcriptdfls=pool.map_async(self.get_transcriptls,extendls).get()
+        print('multi process Time elapsed',int(time.time()-ctime),'seconds.')
 
+        ctime=time.time()
 
         # for i in range(0,len(extendls)):
         #     transcriptid=extendls[i][0]       
@@ -319,18 +401,25 @@ class get_TSS_count():
         #     transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
         #     transcriptdf.set_index('cell_id',inplace=True)
         #     transcriptdfls.append(transcriptdf)
-        print(len(transcriptdfls))
+        #print(len(transcriptdfls))
+
+
         finaldf=reduce(lambda x,y: x.join(y,how='outer'), transcriptdfls )
+        print('reduce union Time elapsed',int(time.time()-ctime),'seconds.')
+
+        ctime=time.time()
+
         finaldf.fillna(0,inplace=True)
         adata=ad.AnnData(finaldf)  
         vardf=pd.DataFrame(adata.var.copy())
         vardf.reset_index(inplace=True)
         vardf.columns=['transcript_id']
         #vardf=pd.merge(vardf,self.tssrefdf,on='transcript_id')
-        vardf=vardf.join(self.tssrefdf.set_index('transcript_id'), on='transcript_id')
+        vardf=vardf.join(regiondf.set_index('transcript_id'), on='transcript_id')
 
         adata.var=vardf
 
         sc_output_h5ad=self.count_out_dir+'sc_TSS_count.h5ad'
         adata.write(sc_output_h5ad)
+        print('produce h5ad Time elapsed',int(time.time()-ctime),'seconds.')
         return adata
