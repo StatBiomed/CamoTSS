@@ -14,17 +14,29 @@ def main():
     parser.add_option('--cdrFile','-c',dest='cdrFile',default=None,help='The file include cell barcode which users want to keep in the downstream analysis.Actually, it can be the same file input in the scTSS-quant')
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
+    
    
    
     group0=OptionGroup(parser,"Optional arguments")
+
     group0.add_option("--minCount",type="int",dest="minCount",default=50,
     help="Minimum counts for each transcript in all cells [default: 50]")
     # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
     # help="No. of isoform keeping in for each gene [default: 2]")
     group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
     help='Number of subprocesses [default: 4]')
+
     group0.add_option('--maxReadCount',dest='maxReadCount',default=50000,
     help='For each gene, the maxmium read count kept for clustering[default: 50000]')
+    
+    group0.add_option('--clusterDistance',dest='clusterDistance',default=1000,
+    help="The minimum distance between two cluster transcription start site [default: 1000]")
+
+    group0.add_option('--minPSI',type="float",dest='minPSI',default=0.1,
+    help="The minimum psi value for the minor TSS count and total TSS count [default: 0.1]")
+
+
+
 
 
     parser.add_option_group(group0)
@@ -78,6 +90,9 @@ def main():
     cellBarcodePath=options.cdrFile
     n_proc=options.nproc
     maxReadCount=options.maxReadCount
+    clusterDistance=options.clusterDistance
+    minPSI=options.minPSI
+
 
 
 
@@ -90,7 +105,7 @@ def main():
         print("Error: Need --bam for aligned file.")
         sys.exit(1)
     else:
-        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount)
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
         scadata=getTSScount.produce_sclevel()
 
         

@@ -70,8 +70,9 @@ def check_pysam_chrom(samFile,chrom=None):
 
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000):
+    def __init__(self,generefPath,tssrefPath,bamfilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=500,psi=0.1):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
+
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
         self.bamfilePath=bamfilePath
         self.count_out_dir=str(outdir)+'/count/'
@@ -81,6 +82,9 @@ class get_TSS_count():
         self.cellBarcode=pd.read_csv(cellBarcodePath,delimiter='\t')['cell_id'].values
         self.nproc=nproc
         self.maxReadCount=maxReadCount
+        self.clusterDistance=clusterDistance
+        self.psi=psi
+
 
         
 
@@ -170,7 +174,11 @@ class get_TSS_count():
     def _do_clustering(self,success):
 
         geneid=success[0]
-        readinfodict=success[1]        
+        readinfodict=success[1]  
+
+        # genlen=self.generefdf[self.generefdf.index==geneid]['End']-self.generefdf[self.generefdf.index==geneid]['Start']
+        # print(genlen)
+
         altTSSls=[]
 
         clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
@@ -179,12 +187,29 @@ class get_TSS_count():
         clusterModel=clusterModel.fit(posiarray)
         labels=clusterModel.labels_
         label,count=np.unique(labels,return_counts=True)
-        selectlabel=label[count>self.minCount]
+        selectlabel=label[count>=self.minCount]
+        selectcount=count[count>=self.minCount]
+        finalcount=selectcount[np.argsort(selectcount)[::-1]]
+        finallabel=selectlabel[np.argsort(selectcount)[::-1]]
 
-        
+        posi=[t[0] for t in readinfodict[geneid]]
+
+
         if len(selectlabel)>=2:
-            selectlabel=label[np.argpartition(count,-2)[-2:]]
-            altTSSls=[[posiarray[labels==selectlabel[0]],CBarray[labels==selectlabel[0]]],[posiarray[labels==selectlabel[1]],CBarray[labels==selectlabel[1]]]]
+            i=1
+            psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
+            try:
+
+                while (np.abs(np.min(posiarray[labels==finallabel[0]])-np.min(posiarray[labels==finallabel[i]]))<self.clusterDistance) or (psi<self.psi):
+                    i=i+1
+                    psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
+
+                altTSSls=[[posiarray[labels==finallabel[0]],CBarray[labels==finallabel[0]]],[posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]]]]
+            except IndexError:
+                altTSSls=[]
+                
+
+            
 
             #print('start')
             # # print(np.min(altTSSls[0][0]))
