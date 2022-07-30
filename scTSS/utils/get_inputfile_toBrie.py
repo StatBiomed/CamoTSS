@@ -9,36 +9,56 @@ class get_brie_input():
     def __init__(self,rawExpFilePath,splicingFilePath,cellInfoPath,quant_out_dir):
         self.originadata=sc.read_10x_mtx(rawExpFilePath,var_names='gene_symbols')
         self.cellinfodf=pd.read_csv(cellInfoPath,delimiter='\t')
-        self.splicingadata=sc.read(splicingFilePath)
+        countpath=splicingFilePath+'count/sc_TSS_count.h5ad'
+        refpath=splicingFilePath+'ref_file/ref_TSS.tsv'
+        self.adata=sc.read(countpath)
+        self.refdf=pd.read_csv(refpath,delimiter='\t')
         self.quant_out_dir=quant_out_dir
 
+
     def get_h5adFile(self):
-        originadata=self.originadata[self.originadata.obs.index.isin(self.cellinfodf['cell_id']),:]
-        # originadatacelldf=pd.DataFrame(originadata.obs.index,columns=['cell_id'])
-        # originadata_adddf=originadatacelldf.merge(cellinfodf,on='cell_id')
-        # originadata.obs['cluster']=originadata_adddf['cluster'].values
-        # originadata.obs['disease']=originadata_adddf['disease'].values
-        # originadata.obs['PC1']=originadata_adddf['PC1'].values
-        # originadata.obs['PC2']=originadata_adddf['PC2'].values
-        # originadata.obs['PC3']=originadata_adddf['PC3'].values
-        # originadata.obs['PC4']=originadata_adddf['PC4'].values
-        # originadata.obs['PC5']=originadata_adddf['PC5'].values
+        adata=self.adata
+        adata.var.reset_index(inplace=True)
+        annodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENST',na=False)]
+        unnodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENSG',na=False)]
+        changerefdf=self.refdf[['gene_id','gene_name','Chromosome','Strand']]
+        changerefdf.drop_duplicates(keep='first',inplace=True)
+        annodf=annodf.merge(self.refdf,on='transcript_id')
+        unnodf['gene_id']=unnodf['transcript_id'].str.split('_new',expand=True)[0]
+        unnodf=unnodf.merge(changerefdf,on='gene_id')
+        scTSSdf=pd.concat([unnodf,annodf],axis=0)
+        adataindex=adata.var[['transcript_id']]
+        adatagenedf=adataindex.merge(scTSSdf,on=['transcript_id'])
+        #print(adatagenedf['Chromosome'].values)
+        #exit(0)
+        adata.var.index=adatagenedf['transcript_id'].values.astype(str)
+        adata.var['TSS_start']=adatagenedf['TSS_start'].values.astype(str)
+        adata.var['TSS_end']=adatagenedf['TSS_end'].values.astype(str)
 
-        # splicingadata=sc.read(splicingFilePath)
-        # print(splicingadata)
-        splicingadata=self.splicingadata[self.splicingadata.obs.index.isin(self.cellinfodf['cell_id']),:]
-        splicinggenedf=pd.DataFrame(splicingadata.var['gene_id'])
-        splicinggenedf.drop_duplicates('gene_id',inplace=True)
-        #print(splicinggenedf)
-        #print(originadata.var['gene_ids'])
-        originadata=originadata[:,originadata.var['gene_ids'].isin(splicinggenedf['gene_id'])]
-        #print(originadata)
+        adata.var['gene_id']=adatagenedf['gene_id'].values.astype(str)
+        adata.var['gene_name_']=adatagenedf['gene_name'].values.astype(str)
 
-        splicingadata=splicingadata[:,splicingadata.var['gene_id'].isin(originadata.var['gene_ids'])]
-        splicedf=pd.DataFrame(splicingadata.X,columns=splicingadata.var['transcript_id'])
+        adata.var['Chromosome_']=adatagenedf['Chromosome'].values.astype(str)
+        adata.var['Strand_']=adatagenedf['Strand'].values.astype(str)
+        adata.var['TSS_anno_']=adatagenedf['TSS'].values.astype(str)
+        splicingOut=str(self.quant_out_dir)+'splicing_add.h5ad'
+        # print(splicingOut)
+        # print(adata.var.info())
+        adata.write(splicingOut)
+
+
+
+
+        #print(adata)
+        adata=adata[:,adata.var['gene_id'].isin(self.originadata.var['gene_ids'])]
+        originadata=self.originadata[self.originadata.obs.index.isin(adata.obs.index),self.originadata.var['gene_ids'].isin(adata.var['gene_id'])]
+        splicedf=pd.DataFrame(adata.X,columns=adata.var.index)
         arr=np.arange(len(splicedf.columns))%2
         isoform1df=splicedf.iloc[:,arr==0]
         isoform2df=splicedf.iloc[:,arr==1]
+        #print("hello")
+        #print(originadata)
+        #print(isoform1df)
         originadata.layers['isoform1']=isoform1df.values
         originadata.layers['isoform2']=isoform2df.values
         originadata.var['isoform1_name']=isoform1df.columns
@@ -52,12 +72,12 @@ class get_brie_input():
 
 
 
-    def get_cluster_cdrFile(self,mode):
+    def get_cluster_cdrFile(self,mode,originadata):
 
         pcdf=self.cellinfodf[['cell_id','PC1','PC2','PC3','PC4','PC5']]
 
-        quant_input,addrawadata=self.get_h5adFile()
-        cdr=np.array((addrawadata.X > 0).mean(1))[:,0]
+        #quant_input,addrawadata=self.get_h5adFile()
+        cdr=np.array((originadata.X > 0).mean(1))[:,0]
         pcdf['detect_rate']=cdr
         cellinfodf=self.cellinfodf
         
@@ -73,9 +93,9 @@ class get_brie_input():
         cdrdf=pd.concat([pcdf,optiondf],axis=1)
 
         cdr_input=self.quant_out_dir+'cdr.tsv'
-        cdrdf.to_csv(cdr_input,sep='\t')
+        cdrdf.to_csv(cdr_input,sep='\t',index=None)
 
-        return cdr_input,cdrdf
+        return cdr_input
 
 
 

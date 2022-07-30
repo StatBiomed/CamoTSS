@@ -6,6 +6,10 @@ from ..utils.get_counts import get_TSS_count
 import pyranges as pr
 import os
 import pandas as pd
+import time 
+
+
+START_TIME = time.time()
 
 
 def main():
@@ -107,6 +111,10 @@ def main():
     else:
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
         scadata=getTSScount.produce_sclevel()
+
+        run_time = time.time() - START_TIME
+        print("[scTSS-count] All done: %d min %.1f sec" %(int(run_time / 60), 
+                                                  run_time % 60))
 
         
     
