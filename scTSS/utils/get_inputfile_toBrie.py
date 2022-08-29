@@ -2,18 +2,20 @@ import pandas as pd
 import scanpy as sc
 import numpy as np
 import anndata as ad
+import os
 
 
 
 class get_brie_input():
-    def __init__(self,rawExpFilePath,splicingFilePath,cellInfoPath,quant_out_dir):
+    def __init__(self,rawExpFilePath,splicingFilePath,cellInfoPath,quant_out_dir,cellnumThreshold):
         self.originadata=sc.read_10x_mtx(rawExpFilePath,var_names='gene_symbols')
         self.cellinfodf=pd.read_csv(cellInfoPath,delimiter='\t')
-        countpath=splicingFilePath+'count/sc_TSS_count.h5ad'
-        refpath=splicingFilePath+'ref_file/ref_TSS.tsv'
+        countpath=os.path.join(splicingFilePath,'count','sc_TSS_count.h5ad')
+        refpath=os.path.join(splicingFilePath,'ref_file','ref_TSS.tsv')
         self.adata=sc.read(countpath)
         self.refdf=pd.read_csv(refpath,delimiter='\t')
         self.quant_out_dir=quant_out_dir
+        self.cellnumThreshold=cellnumThreshold
 
 
     def get_h5adFile(self):
@@ -41,7 +43,9 @@ class get_brie_input():
         adata.var['Chromosome_']=adatagenedf['Chromosome'].values.astype(str)
         adata.var['Strand_']=adatagenedf['Strand'].values.astype(str)
         adata.var['TSS_anno_']=adatagenedf['TSS'].values.astype(str)
-        splicingOut=str(self.quant_out_dir)+'splicing_add.h5ad'
+
+        splicingOut=os.path.join(self.quant_out_dir,'splicing_add.h5ad')
+
         # print(splicingOut)
         # print(adata.var.info())
         adata.write(splicingOut)
@@ -74,7 +78,8 @@ class get_brie_input():
 
     def get_cluster_cdrFile(self,mode,originadata):
 
-        pcdf=self.cellinfodf[['cell_id','PC1','PC2','PC3','PC4','PC5']]
+        #pcdf=self.cellinfodf[['cell_id','PC1','PC2','PC3','PC4','PC5']]
+        pcdf=self.cellinfodf[['cell_id']]
 
         #quant_input,addrawadata=self.get_h5adFile()
         cdr=np.array((originadata.X > 0).mean(1))[:,0]
@@ -91,11 +96,21 @@ class get_brie_input():
             optiondf=optiondf.iloc[:,0]
 
         cdrdf=pd.concat([pcdf,optiondf],axis=1)
+        cdrdf.set_index('cell_id',inplace=True)
+        cdrdf.loc['sum']=cdrdf.sum(axis=0)
+        cdrdf=cdrdf.loc[:,cdrdf.loc['sum']>self.cellnumThreshold]
+
+
+
+        print(len(cdrdf.columns))
+
+        numls=[i for i in range(1,len(cdrdf.columns)-1)]
+        
 
         cdr_input=self.quant_out_dir+'cdr.tsv'
-        cdrdf.to_csv(cdr_input,sep='\t',index=None)
+        cdrdf.to_csv(cdr_input,sep='\t')
 
-        return cdr_input
+        return cdr_input,numls
 
 
 

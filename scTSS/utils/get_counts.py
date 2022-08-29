@@ -1,7 +1,7 @@
 import brie
 import numpy as np
 import pandas as pd
-from brie.utils import fetch_reads
+from brie.utils import fetch_reads,load_samfile
 import os
 import pickle
 from functools import reduce
@@ -20,6 +20,8 @@ import random
 import pickle
 import numpy.lib.recfunctions as rfn
 import numpy.ma as ma
+from itertools import compress
+import statistics
 
 
 
@@ -73,9 +75,9 @@ def check_pysam_chrom(samFile,chrom=None):
 
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=500,psi=0.1):
+    def __init__(self,generefPath,tssrefPath,bamfilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=200,psi=0.1):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
-
+        self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
         self.bamfilePath=bamfilePath
         self.count_out_dir=str(outdir)+'/count/'
@@ -88,29 +90,55 @@ class get_TSS_count():
         self.clusterDistance=clusterDistance
         self.psi=psi
 
+        # filteredbam_file=load_samfile(bamfilePath)
+        # self.reads=[r for r in filteredbam_file.fetch()]
+        # print(self.reads)
+
 
         
 
     def _getreads(self,bamfilePath,geneid):
+        #print('hello')
 
         #print('Get_reads the pid is %s, gene_id=%s' % (getpid(), geneid))
         #fetch reads1 in gene 
         samFile, _chrom = check_pysam_chrom(bamfilePath,'chr'+str(self.generefdf.loc[geneid]['Chromosome']))
+        #reads=[r for r in samFile.fetch()]
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
+
         reads1_umi = reads["reads1"]
 
-        #do filtering，selecting reads1 with cell barcode and umi+barcode
-        reads1_umi = [r for r in reads1_umi if r.has_tag('CB')]  
-        reads1_umi = [r for r in reads1_umi if r.has_tag('UR')]
 
-        #filtering, unique umi and cell barcode
-        _umi = [r.get_tag('CB') + r.get_tag('UR') for r in reads1_umi]
-        _umi_uniq, _umi_idx = np.unique(_umi, return_index=True) 
-        reads1_umi = [reads1_umi[x] for x in _umi_idx]
-        #print(self.cellBarcode)
-        #print(reads1_umi.get_tag('CB'))
+        # #do filtering，selecting reads1 with cell barcode and umi+barcode
+        # reads1_umi = [r for r in reads1_umi if r.has_tag('CB')]  
+        # reads1_umi = [r for r in reads1_umi if r.has_tag('UR')]
 
-        #filter according to the CB provided by users
+        # #filtering, unique umi and cell barcode
+        # _umi = [r.get_tag('CB') + r.get_tag('UR') for r in reads1_umi]
+        # _umi_uniq, _umi_idx = np.unique(_umi, return_index=True) 
+        # reads1_umi = [reads1_umi[x] for x in _umi_idx]
+        # #print(self.cellBarcode)
+        # #print(reads1_umi.get_tag('CB'))
+
+        # #filter according to the CB provided by users
+        # reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
+
+        #select corresponding strand reads according to gtf file
+        # if self.generefdf.loc[geneid]['Strand']=='+':
+        #     reads1_select=[r.is_forward for r in reads1_umi]
+        #     reads1_umi=[x for x, y in zip(reads1_umi, reads1_select) if y == True]
+        # else:
+        #     reads1_select=[r.is_reverse for r in reads1_umi]
+        #     reads1_umi=[x for x, y in zip(reads1_umi, reads1_select) if y == True]
+
+
+        #select according to GX tag
+        reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
+
+        # reads1_umi=[r for r in reads1_umi if len(r.positions)==110]
+        reads1_umi=[r for r in reads1_umi if r.query_sequence[0:13]=='TTTCTTATATGGG']
+        # print('hi')
+        
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
 
 
@@ -129,13 +157,25 @@ class get_TSS_count():
         #print(self.nproc)
         self.generefdf.set_index('gene_id',inplace=True)
         bamfilePath=self.bamfilePath
+
+        # samFile, _chrom = check_pysam_chrom(bamfilePath,'chr'+str(self.generefdf.loc[geneid]['Chromosome']))
+        # self.reads=[r for r in samFile.fetch()]
+
+
+
+
         readinfodict={}
         results=[]
+
+        # for i in self.generefdf.index:
+        #     readinfodict[i]=self._getreads(i)
+
 
 
         for i in self.generefdf.index:
             #readinfodict[i]=self._getreads(bamfilePath,i)
             results.append(pool.apply_async(self._getreads,(bamfilePath,i)))
+            #results.append(pool.apply_async(self._getreads,(i)))
         pool.close()
         pool.join()
         results=[res.get() for res in results]
@@ -178,17 +218,47 @@ class get_TSS_count():
         label,count=np.unique(labels,return_counts=True)
         selectlabel=label[count>=self.minCount]
         selectcount=count[count>=self.minCount]
-        finalcount=selectcount[np.argsort(selectcount)[::-1]]
-        finallabel=selectlabel[np.argsort(selectcount)[::-1]]
-
-        posi=[t[0] for t in readinfodict[geneid]]
+        finalcount=list(selectcount[np.argsort(selectcount)[::-1]])
+        finallabel=list(selectlabel[np.argsort(selectcount)[::-1]])
 
 
-        if len(selectlabel)>=2:
+
+        # if len(finallabel)>=2:
+        #     endselectls=[]
+        #     if self.generefdf[self.generefdf.index==geneid]['End'].iloc[0]=='+':           
+        #         for i in range(0,len(finallabel)):
+        #             if np.abs(self.generefdf[self.generefdf.index==geneid]['End'].iloc[0]-statistics.median(posiarray[labels==finallabel[i]]))>self.generefdf[self.generefdf.index==geneid]['len'].iloc[0]*0.1:
+        #                 endselectls.append(finallabel[i])
+        #         finallabel=endselectls
+        #     else:
+        #         for i in range(0,len(finallabel)):
+        #             if np.abs(self.generefdf[self.generefdf.index==geneid]['Start'].iloc[0]-statistics.median(posiarray[labels==finallabel[i]]))>self.generefdf[self.generefdf.index==geneid]['len'].iloc[0]*0.1:
+        #                 endselectls.append(finallabel[i])
+        #         finallabel=endselectls
+
+                    
+
+
+
+        if len(finallabel)>=3:
+            selectannlabel=[]
+            #print(self.tssrefdf)
+            enstdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
+            enstls=list(enstdf['TSS'])
+            for i in range(0,len(finallabel)):
+                if any(tss>np.min(posiarray[labels==finallabel[i]])-300 and tss<np.max(posiarray[labels==finallabel[i]])+300 for tss in enstls):
+                    selectannlabel.append(finallabel[i])
+            if len(selectannlabel)>=2:
+                finallabel=selectannlabel 
+
+        #print(geneid)   
+        #print(finallabel)       
+
+
+        if len(finallabel)>=2:
             i=1
             psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
             try:
-
                 while (np.abs(np.min(posiarray[labels==finallabel[0]])-np.min(posiarray[labels==finallabel[i]]))<self.clusterDistance) or (psi<self.psi):
                     i=i+1
                     psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
@@ -255,13 +325,13 @@ class get_TSS_count():
         tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
 
         transcriptdict={}
-        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<100:
+        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<300:
             transcriptdict[transcriptls[0]]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1])
         else:
             newname1=str(geneid)+'_newTSS_1'
             transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1])
 
-        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<100:
+        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<300:
             transcriptdict[transcriptls[1]]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1])  
         else:
             newname2=str(geneid)+'_newTSS_2'

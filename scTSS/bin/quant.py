@@ -34,6 +34,13 @@ def main():
 
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $alternativeTSSPath]')
 
+    group0=OptionGroup(parser,"Optional arguments")
+
+    group0.add_option("--mincellnum",type="int",dest="mincellnum",default=50,
+    help="Minimum cell number for each cells [default: 50]")
+
+
+    parser.add_option_group(group0)
     (options, args) = parser.parse_args()
 
 
@@ -85,6 +92,7 @@ def main():
     cellInfoPath=options.cell_info
     mode=options.mode
     splicingFilePath=options.countOutPath
+    cellnumThreshold=options.mincellnum
  
 
 
@@ -96,16 +104,21 @@ def main():
 
 
     # get file to brie2
-    getFile=get_brie_input(rawExpFilePath,splicingFilePath,cellInfoPath,quant_out_dir)
+    getFile=get_brie_input(rawExpFilePath,splicingFilePath,cellInfoPath,quant_out_dir,cellnumThreshold)
     brie_h5ad_input,originadata=getFile.get_h5adFile()
-    brie_cdr_input=getFile.get_cluster_cdrFile(mode,originadata)
+    brie_cdr_input,numls=getFile.get_cluster_cdrFile(mode,originadata)
     outputFile=str(quant_out_dir)+'Diff_TSS_Gene.h5ad'
 
-    print(originadata)
-    print(brie_cdr_input)
+    #print(originadata)
+    #print(brie_cdr_input)
+
+    numls=[str(i) for i in numls]
+    inputnum=','.join(numls)
+    #print(inputnum)
+    
 
     #run BRIE2
-    bashCommond="brie-quant -i %s -c %s -o %s --batchSize 1000000 --minCell 250  --interceptMode gene --testBase null --LRTindex All" %(brie_h5ad_input,brie_cdr_input,outputFile)
+    bashCommond="brie-quant -i %s -c %s -o %s --batchSize 1000000 --minCell 250  --interceptMode gene --testBase null --LRTindex=All" %(brie_h5ad_input,brie_cdr_input,outputFile)
     print(bashCommond)
     process = subprocess.Popen(bashCommond.split(), stdout=subprocess.PIPE)
     #print(process)
