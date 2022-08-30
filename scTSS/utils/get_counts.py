@@ -22,6 +22,7 @@ import numpy.lib.recfunctions as rfn
 import numpy.ma as ma
 from itertools import compress
 import statistics
+import editdistance
 
 
 
@@ -73,9 +74,15 @@ def check_pysam_chrom(samFile,chrom=None):
 
 
 
+def get_fastq_file(fastqFilePath):
+    fastqFile=pysam.FastaFile(fastqFilePath)
+    return fastqFile
+
+
+
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=200,psi=0.1):
+    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=200,psi=0.1):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
@@ -89,6 +96,7 @@ class get_TSS_count():
         self.maxReadCount=maxReadCount
         self.clusterDistance=clusterDistance
         self.psi=psi
+        self.fastqFilePath=fastqFilePath
 
         # filteredbam_file=load_samfile(bamfilePath)
         # self.reads=[r for r in filteredbam_file.fetch()]
@@ -97,7 +105,7 @@ class get_TSS_count():
 
         
 
-    def _getreads(self,bamfilePath,geneid):
+    def _getreads(self,bamfilePath,fastqFilePath,geneid):
         #print('hello')
 
         #print('Get_reads the pid is %s, gene_id=%s' % (getpid(), geneid))
@@ -107,6 +115,8 @@ class get_TSS_count():
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
 
         reads1_umi = reads["reads1"]
+
+        fastqFile=get_fastq_file(fastqFilePath)
 
 
         # #do filtering，selecting reads1 with cell barcode and umi+barcode
@@ -135,11 +145,18 @@ class get_TSS_count():
         #select according to GX tag
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
 
+
+
+
         # reads1_umi=[r for r in reads1_umi if len(r.positions)==110]
-        reads1_umi=[r for r in reads1_umi if r.query_sequence[0:13]=='TTTCTTATATGGG']
+        #reads1_umi=[r for r in reads1_umi if r.query_sequence[0:13]=='TTTCTTATATGGG']
         # print('hi')
         
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
+
+        fastqFile=get_fastq_file(fastqFilePath)
+        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region=str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+
 
 
         reads_info=[]
@@ -157,6 +174,7 @@ class get_TSS_count():
         #print(self.nproc)
         self.generefdf.set_index('gene_id',inplace=True)
         bamfilePath=self.bamfilePath
+        fastqFilePath=self.fastqFilePath
 
         # samFile, _chrom = check_pysam_chrom(bamfilePath,'chr'+str(self.generefdf.loc[geneid]['Chromosome']))
         # self.reads=[r for r in samFile.fetch()]
@@ -174,7 +192,7 @@ class get_TSS_count():
 
         for i in self.generefdf.index:
             #readinfodict[i]=self._getreads(bamfilePath,i)
-            results.append(pool.apply_async(self._getreads,(bamfilePath,i)))
+            results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i)))
             #results.append(pool.apply_async(self._getreads,(i)))
         pool.close()
         pool.join()

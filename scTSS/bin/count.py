@@ -18,6 +18,7 @@ def main():
     parser.add_option('--cdrFile','-c',dest='cdrFile',default=None,help='The file include cell barcode which users want to keep in the downstream analysis.Actually, it can be the same file input in the scTSS-quant')
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
+    parser.add_option('--refFastq','-r',dest='refFastq',default=None,help='The directory for reference fastq file') #what should be after $
     
    
    
@@ -71,6 +72,10 @@ def main():
         print("Error: Need --cdrFile for cell barcode file.")
         sys.exit(1)
 
+    if options.refFastq is None:
+        print("Error: Need --refFastq for reference fastq file.")
+        sys.exit(1)
+
 
         
         
@@ -96,6 +101,7 @@ def main():
     maxReadCount=options.maxReadCount
     clusterDistance=options.clusterDistance
     minPSI=options.minPSI
+    fastqFilePath=options.refFastq
 
 
 
@@ -109,7 +115,7 @@ def main():
         print("Error: Need --bam for aligned file.")
         sys.exit(1)
     else:
-        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
         scadata=getTSScount.produce_sclevel()
 
         run_time = time.time() - START_TIME
