@@ -121,6 +121,3 @@ def main():
         run_time = time.time() - START_TIME
         print("[scTSS-count] All done: %d min %.1f sec" %(int(run_time / 60), 
                                                   run_time % 60))
-
-        
-    

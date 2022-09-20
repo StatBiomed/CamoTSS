@@ -20,6 +20,7 @@ class get_brie_input():
 
     def get_h5adFile(self):
         adata=self.adata
+
         adata.var.reset_index(inplace=True)
         annodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENST',na=False)]
         unnodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENSG',na=False)]
@@ -51,18 +52,14 @@ class get_brie_input():
         adata.write(splicingOut)
 
 
-
-
-        #print(adata)
         adata=adata[:,adata.var['gene_id'].isin(self.originadata.var['gene_ids'])]
         originadata=self.originadata[self.originadata.obs.index.isin(adata.obs.index),self.originadata.var['gene_ids'].isin(adata.var['gene_id'])]
         splicedf=pd.DataFrame(adata.X,columns=adata.var.index)
         arr=np.arange(len(splicedf.columns))%2
         isoform1df=splicedf.iloc[:,arr==0]
         isoform2df=splicedf.iloc[:,arr==1]
-        #print("hello")
-        #print(originadata)
-        #print(isoform1df)
+   
+   
         originadata.layers['isoform1']=isoform1df.values
         originadata.layers['isoform2']=isoform2df.values
         originadata.var['isoform1_name']=isoform1df.columns
