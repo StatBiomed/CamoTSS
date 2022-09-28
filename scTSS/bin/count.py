@@ -3,6 +3,7 @@ from ..version import __version__
 import sys
 from ..utils.build_ref import get_TSSref,get_generef
 from ..utils.get_counts import get_TSS_count
+from ..utils.get_count_novel import get_novel_TSS_count
 import pyranges as pr
 import os
 import pandas as pd
@@ -34,7 +35,7 @@ def main():
     group0.add_option('--maxReadCount',dest='maxReadCount',default=50000,
     help='For each gene, the maxmium read count kept for clustering[default: 50000]')
     
-    group0.add_option('--clusterDistance',dest='clusterDistance',default=1000,
+    group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=1000,
     help="The minimum distance between two cluster transcription start site [default: 1000]")
 
     group0.add_option('--minPSI',type="float",dest='minPSI',default=0.1,

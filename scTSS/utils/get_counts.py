@@ -202,8 +202,20 @@ class get_TSS_count():
         selectcount=count[count>=self.minCount]
         finalcount=list(selectcount[np.argsort(selectcount)[::-1]])
         finallabel=list(selectlabel[np.argsort(selectcount)[::-1]])
+
+
+        
+        # if len(finallabel)>=2:
+        #     altTSSls=[]
+        #     for i in range(0,len(finallabel)):
+        #             altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
+
+
+
+
+
                     
-        # if there are more than 3 cluster then select which can assign to annotation position cluster
+        #if there are more than 3 cluster then select which can assign to annotation position cluster
         if len(finallabel)>=3:
             selectannlabel=[]
             enstdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
@@ -216,19 +228,19 @@ class get_TSS_count():
     
 
         #require two cluster's distance should reach the requirement.
-        if len(finallabel)>=2:
+        if len(finallabel)>=3:
             i=1
             psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
             try:
-                while (np.abs(np.min(posiarray[labels==finallabel[0]])-np.min(posiarray[labels==finallabel[i]]))<self.clusterDistance) or (psi<self.psi):
+                while (np.abs(np.min(posiarray[labels==finallabel[0]])-np.min(posiarray[labels==finallabel[i]]))>self.clusterDistance) or (psi>self.psi):
                     i=i+1
                     psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
                 altTSSls=[[posiarray[labels==finallabel[0]],CBarray[labels==finallabel[0]],cigartuplearray[labels==finallabel[0]]]
                 #,seqarray[labels==finallabel[0]]
-                            ,[posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]]]
+                        ,[posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]]]
                             #,seqarray[labels==finallabel[i]]
             except IndexError:
-                altTSSls=[]  
+                    altTSSls=[]  
                 
         return altTSSls
 
@@ -286,13 +298,13 @@ class get_TSS_count():
 
 
         transcriptdict={}
-        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<300:
+        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<500:
             transcriptdict[transcriptls[0]]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
         else:
             newname1=str(geneid)+'_newTSS_1'
             transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
 
-        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<300:
+        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<500:
             transcriptdict[transcriptls[1]]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
         else:
             newname2=str(geneid)+'_newTSS_2'
@@ -337,48 +349,20 @@ class get_TSS_count():
             per=[('14S' in ele)or('15S' in ele)or('16S' in ele) for ele in secondls]
             gpercentls.append(sum(per)/len(secondls))
 
-        gpercentarray=np.array(gpercentls).reshape(-1,1)
-        gpercentarray
-
-        scaler = MinMaxScaler()
-        scaler.fit(gpercentarray)
-        scale_gpercentls=list(scaler.transform(gpercentarray).flatten())
-        scale_gpercentls
 
         ### summit umi count 
         intsmmit_countls=[np.max(np.unique(final_map[i][0].flatten(),return_counts=True)[1]) for i in final_map.keys()]
-        intsmmit_countlog2array=np.log2(np.array(intsmmit_countls)).reshape(-1,1)
-        scaler = MinMaxScaler()
-        scaler.fit(intsmmit_countlog2array)
-        logscale_summitls=list(scaler.transform(intsmmit_countlog2array).flatten())
 
 
-        ### flank count
-        flankcountls=[]
-        for i in final_map.keys():
-            posls=list(final_map[i][0].flatten())
-            summitpos=max(set(posls), key = posls.count)
-            pos=np.unique(final_map[i][0].flatten(),return_counts=True)[0]
-            count=np.unique(final_map[i][0].flatten(),return_counts=True)[1]
-            flank_umi=sum(count[(pos>summitpos-75)&(pos<summitpos+75)])
-            flankcountls.append(flank_umi)
-        flankcountlog2array=np.log2(np.array(flankcountls)).reshape(-1,1)
-        scaler = MinMaxScaler()
-        scaler.fit(flankcountlog2array)
-        logscale_flankls=list(scaler.transform(flankcountlog2array).flatten())
-
+        ### std
+        stdls=[statistics.stdev(final_map[i][0].flatten()) for i in final_map.keys()]
 
         ### cluster count 
         clustercountls=[len(final_map[i][0]) for i in final_map.keys()]
-        clustercountlog2array=np.log2(np.array(clustercountls)).reshape(-1,1)
-        scaler = MinMaxScaler()
-        scaler.fit(clustercountlog2array)
-        logscale_clusterls=list(scaler.transform(clustercountlog2array).flatten())
-
 
         ### create test dataset
-        testdf=pd.DataFrame({'unencodeG':scale_gpercentls,'summit_umi_count':logscale_summitls,'cluster_count':logscale_clusterls})
-        pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])+'/test/train_fromSCAFE.csv'
+        testdf=pd.DataFrame({'cluster_count':clustercountls,'Std':stdls,'unencodeG':gpercentls,'summit_umi_count':intsmmit_countls})
+        pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])+'/test/trian_ourself_dataset.csv'
 
 
         #print(pathstr)
@@ -399,21 +383,28 @@ class get_TSS_count():
         ### filter according to the result of model
         finalresultdf=pd.DataFrame({'transcript_id':final_map.keys(),'label':anotherpredictY})
         dropdf=finalresultdf[finalresultdf['label']==0]
+        print(finalresultdf)
+        print(dropdf)
+        # print(transcriptdictls)
+
 
         newdict={}
         for ele in transcriptdictls:
             newdict["+".join(list(ele.keys()))]=[]
         newdict
+        print(newdict)
 
         remainingls=[]
         for i in newdict.keys():
             if ( i.split('+')[0] not in list(dropdf['transcript_id'])) and (i.split('+')[1] not in list(dropdf['transcript_id'])):
                 remainingls.append(i)
+        print(remainingls)
 
         newnewls=[]
         for ele in transcriptdictls:
             if "+".join(list(ele.keys())) in remainingls:
                 newnewls.append(ele) 
+        print(newnewls)
 
         extendls=[]
         for d in newnewls:
@@ -426,6 +417,8 @@ class get_TSS_count():
 
         regiondf=pd.DataFrame(d)
         print('do annotation Time elapsed',int(time.time()-start_time),'seconds.')
+        print(extendls)
+        print(regiondf)
 
         return extendls,regiondf
 
