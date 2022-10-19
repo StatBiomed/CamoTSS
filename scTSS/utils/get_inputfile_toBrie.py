@@ -21,37 +21,6 @@ class get_brie_input():
     def get_h5adFile(self):
         adata=self.adata
 
-        adata.var.reset_index(inplace=True)
-        annodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENST',na=False)]
-        unnodf=adata.var.loc[adata.var['transcript_id'].str.startswith('ENSG',na=False)]
-        changerefdf=self.refdf[['gene_id','gene_name','Chromosome','Strand']]
-        changerefdf.drop_duplicates(keep='first',inplace=True)
-        annodf=annodf.merge(self.refdf,on='transcript_id')
-        unnodf['gene_id']=unnodf['transcript_id'].str.split('_new',expand=True)[0]
-        unnodf=unnodf.merge(changerefdf,on='gene_id')
-        scTSSdf=pd.concat([unnodf,annodf],axis=0)
-        adataindex=adata.var[['transcript_id']]
-        adatagenedf=adataindex.merge(scTSSdf,on=['transcript_id'])
-        #print(adatagenedf['Chromosome'].values)
-        #exit(0)
-        adata.var.index=adatagenedf['transcript_id'].values.astype(str)
-        adata.var['TSS_start']=adatagenedf['TSS_start'].values.astype(str)
-        adata.var['TSS_end']=adatagenedf['TSS_end'].values.astype(str)
-
-        adata.var['gene_id']=adatagenedf['gene_id'].values.astype(str)
-        adata.var['gene_name_']=adatagenedf['gene_name'].values.astype(str)
-
-        adata.var['Chromosome_']=adatagenedf['Chromosome'].values.astype(str)
-        adata.var['Strand_']=adatagenedf['Strand'].values.astype(str)
-        adata.var['TSS_anno_']=adatagenedf['TSS'].values.astype(str)
-
-        splicingOut=os.path.join(self.quant_out_dir,'splicing_add.h5ad')
-
-        # print(splicingOut)
-        # print(adata.var.info())
-        adata.write(splicingOut)
-
-
         adata=adata[:,adata.var['gene_id'].isin(self.originadata.var['gene_ids'])]
         originadata=self.originadata[self.originadata.obs.index.isin(adata.obs.index),self.originadata.var['gene_ids'].isin(adata.var['gene_id'])]
         splicedf=pd.DataFrame(adata.X,columns=adata.var.index)

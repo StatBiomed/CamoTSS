@@ -3,7 +3,7 @@ from ..version import __version__
 import sys
 from ..utils.build_ref import get_TSSref,get_generef
 from ..utils.get_counts import get_TSS_count
-from ..utils.get_count_novel import get_novel_TSS_count
+from ..utils.get_count_no_novel import get_old_TSS_count
 import pyranges as pr
 import os
 import pandas as pd
@@ -20,7 +20,8 @@ def main():
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
     parser.add_option('--refFastq','-r',dest='refFastq',default=None,help='The directory for reference fastq file') #what should be after $
-    
+    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS mode [New] or just based on gtf annotation file [Old]')
+
    
    
     group0=OptionGroup(parser,"Optional arguments")
@@ -32,7 +33,7 @@ def main():
     group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
     help='Number of subprocesses [default: 4]')
 
-    group0.add_option('--maxReadCount',dest='maxReadCount',default=50000,
+    group0.add_option('--maxReadCount',type="int",dest='maxReadCount',default=50000,
     help='For each gene, the maxmium read count kept for clustering[default: 50000]')
     
     group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=1000,
@@ -78,7 +79,12 @@ def main():
         sys.exit(1)
 
 
-        
+    #bam file
+    if options.bam_file is None:
+        print("Error: Need --bam for aligned file.")
+        sys.exit(1)
+    
+   
         
     #gtf file
     if options.gtf_file is None:
@@ -107,14 +113,11 @@ def main():
 
 
 
+        
+    if options.mode == "Old":
+        getTSScount=get_old_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
+        scadata=getTSScount.produce_sclevel()
 
-
-
-           
-    #bam file
-    if options.bam_file is None:
-        print("Error: Need --bam for aligned file.")
-        sys.exit(1)
     else:
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
         scadata=getTSScount.produce_sclevel()

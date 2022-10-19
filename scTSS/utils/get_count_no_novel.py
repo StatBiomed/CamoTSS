@@ -93,7 +93,7 @@ def get_fastq_file(fastqFilePath):
 
 
 
-class get_novel_TSS_count():
+class get_old_TSS_count():
     def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=200,psi=0.1):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
@@ -203,45 +203,11 @@ class get_novel_TSS_count():
         finalcount=list(selectcount[np.argsort(selectcount)[::-1]])
         finallabel=list(selectlabel[np.argsort(selectcount)[::-1]])
 
-
-        
-        # if len(finallabel)>=2:
-        #     altTSSls=[]
-        #     for i in range(0,len(finallabel)):
-        #             altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
-
-
-
-
-
-                    
-        #if there are more than 3 cluster then select which can assign to annotation position cluster
-        if len(finallabel)>=3:
-            selectannlabel=[]
-            enstdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
-            enstls=list(enstdf['TSS'])
+        if len(finallabel)>=2:
+            altTSSls=[]
             for i in range(0,len(finallabel)):
-                if any(tss>np.min(posiarray[labels==finallabel[i]])-300 and tss<np.max(posiarray[labels==finallabel[i]])+300 for tss in enstls):
-                    selectannlabel.append(finallabel[i])
-            if len(selectannlabel)>=2:
-                finallabel=selectannlabel 
-    
-
-        #require two cluster's distance should reach the requirement.
-        if len(finallabel)>=3:
-            i=1
-            psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
-            try:
-                while (np.abs(np.min(posiarray[labels==finallabel[0]])-np.min(posiarray[labels==finallabel[i]]))>self.clusterDistance) or (psi>self.psi):
-                    i=i+1
-                    psi=len(posiarray[labels==finallabel[i]])/(len(posiarray[labels==finallabel[i]])+len(posiarray[labels==finallabel[0]]))
-                altTSSls=[[posiarray[labels==finallabel[0]],CBarray[labels==finallabel[0]],cigartuplearray[labels==finallabel[0]]]
-                #,seqarray[labels==finallabel[0]]
-                        ,[posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]]]
-                            #,seqarray[labels==finallabel[i]]
-            except IndexError:
-                    altTSSls=[]  
-                
+                altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
+       
         return altTSSls
 
 
@@ -284,9 +250,10 @@ class get_novel_TSS_count():
 
 
         #use Hungarian algorithm to assign cluster to corresponding transcript
-        cost_mtx=np.zeros((2,temprefdf.shape[0]))
-        for i in range(2):
+        cost_mtx=np.zeros((len(altTSSdict[geneid]),temprefdf.shape[0]))
+        for i in range(0,len(altTSSdict[geneid])):
             for j in range(temprefdf.shape[0]):
+                #print(altTSSdict[geneid])
                 cluster_val=altTSSdict[geneid][i][0]
                 quanp=cluster_val[cluster_val<np.percentile(cluster_val,10)]
                 cost_mtx[i,j]=np.absolute(np.sum(quanp-temprefdf.iloc[j,5]))
@@ -298,19 +265,14 @@ class get_novel_TSS_count():
 
 
         transcriptdict={}
-        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<500:
-            transcriptdict[transcriptls[0]]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
-        else:
-            newname1=str(geneid)+'_newTSS_1'
-            transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
+        for i in range(0,len(tssls)):
+            if np.min([np.absolute(j-np.min(altTSSdict[geneid][i][0])) for j in tssls])<300:
+                transcriptdict[transcriptls[i]]=(altTSSdict[geneid][row_ind[i]][0],altTSSdict[geneid][row_ind[i]][2])
+            else:
+                newname=str(geneid)+'_newTSS'+'_'+str(i)
+                transcriptdict[newname]=(altTSSdict[geneid][row_ind[i]][0],altTSSdict[geneid][row_ind[i]][2])
+        
 
-        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<500:
-            transcriptdict[transcriptls[1]]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
-        else:
-            newname2=str(geneid)+'_newTSS_2'
-            transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
-
-        #print(transcriptdict)
 
         return transcriptdict
 
@@ -329,15 +291,26 @@ class get_novel_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             transcriptdictls=pool.map_async(self._do_anno_and_filter,inputpar).get()
 
+        #print(transcriptdictls)
+        # for i in transcriptdictls:
+        #     print(i)
         #add some limitation to filter novel TSS
-        remainingtranscriptls=[]
-        for t in remainingtranscriptls:
-            if 'newTSS' not in t.keys():
-                remainingtranscriptls.append(t)
+        # remainingtranscriptls=[]
+        # if not any('newTSS' in i.keys() for i in transcriptdictls):
+        #     remainingtranscriptls.append(i)
 
+        # print('hello')
+        # print(remainingtranscriptls)
         extendls=[]
-        for d in remainingtranscriptls:
+        for d in transcriptdictls:
             extendls.extend(list(d.items()))
+
+        print(extendls)
+
+        # remainingtranscriptls=[]
+        # for i in extendls:
+        #     remainingtranscriptls.append({k:v for k,v in i.items() if not 'null' in k})
+
 
         
         d={'transcript_id':[transcript[0] for transcript in extendls],'TSS_start':[np.min(transcript[1][0]) for transcript in extendls],
@@ -346,7 +319,7 @@ class get_novel_TSS_count():
 
         regiondf=pd.DataFrame(d)
 
-        return transcript_remainingls
+        return extendls,regiondf
 
 
 
