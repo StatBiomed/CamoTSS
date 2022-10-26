@@ -6,6 +6,8 @@ from sklearn.cluster import AgglomerativeClustering
 def get_TSSref(grdf,out_dir):
     tssdf=grdf[grdf['Feature']=='transcript']
     tssdf=tssdf[['transcript_id','gene_id','gene_name','Chromosome','Start','End','Strand']]
+    tssdf['Chromosome']=tssdf['Chromosome'].str.split('chr',expand=True)[1]
+
 
     #consider positive and negative strand questions
     tssdf['TSS']=np.where(tssdf['Strand']=='+',tssdf['Start'],tssdf['End'])
@@ -31,6 +33,7 @@ def get_TSSref(grdf,out_dir):
 def get_generef(grdf,tssdf,out_dir):
     genedf=grdf[grdf['Feature']=='gene']
     genedf=genedf[['Chromosome','Feature','Start','End','Strand','gene_id','gene_name']]
+    genedf['Chromosome']=genedf['Chromosome'].str.split('chr',expand=True)[1]
     genedf=genedf[genedf['gene_id'].isin(pd.unique(tssdf['gene_id']))]
     geneoutput_path=out_dir+'ref_gene.tsv'
     genedf.to_csv(geneoutput_path,index=None,sep='\t')
@@ -39,9 +42,9 @@ def get_generef(grdf,tssdf,out_dir):
 
     
 
-if __name__ == '__main__':
-    gtf_path="/storage/yhhuang/users/ruiyan/annotation/human_gene_file/Homo_sapiens.GRCh38.105.chr.gtf"
-    gr = pr.read_gtf(gtf_path)
-    grdf = gr.df
-    tssdf= get_TSSref(grdf)
-    genedf=get_generef(grdf,tssdf)
+# if __name__ == '__main__':
+    # gtf_path="/storage/yhhuang/users/ruiyan/annotation/human_gene_file/Homo_sapiens.GRCh38.105.chr.gtf"
+    # gr = pr.read_gtf(gtf_path)
+    # grdf = gr.df
+    # tssdf= get_TSSref(grdf)
+    # genedf=get_generef(grdf,tssdf)

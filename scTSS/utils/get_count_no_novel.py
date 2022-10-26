@@ -124,15 +124,15 @@ class get_old_TSS_count():
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
 
-        #filter strand invasion
-        fastqFile=get_fastq_file(fastqFilePath)
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region=str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+        # #filter strand invasion
+        # fastqFile=get_fastq_file(fastqFilePath)
+        # reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region=str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
 
 
-        #filter according to the cateria of SCAFE
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
-        reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
-        reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
+        # #filter according to the cateria of SCAFE
+        # reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
+        # reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
+        # reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
 
 
         #store start of reads and CB 
@@ -180,6 +180,23 @@ class get_old_TSS_count():
         #     pickle.dump(readinfodict,f)
 
         return readinfodict
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
 
 

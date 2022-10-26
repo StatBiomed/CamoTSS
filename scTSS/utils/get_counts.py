@@ -94,7 +94,7 @@ def get_fastq_file(fastqFilePath):
 
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=1000,psi=0.1):
+    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=500,psi=0.1):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
@@ -114,7 +114,7 @@ class get_TSS_count():
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
         #fetch reads1 in gene 
-        samFile, _chrom = check_pysam_chrom(bamfilePath,'chr'+str(self.generefdf.loc[geneid]['Chromosome']))
+        samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
 
@@ -126,13 +126,23 @@ class get_TSS_count():
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region=str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+
 
 
         #filter according to the cateria of SCAFE
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
-        reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
-        reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
+        if self.generefdf.loc[geneid]['Strand']=='+':
+            reads1_umi=[r for r in reads1_umi if r.is_reverse==False]
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
+            reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
+            reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
+        
+        elif self.generefdf.loc[geneid]['Strand']=='-':
+            reads1_umi=[r for r in reads1_umi if r.is_reverse==True]
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[-13:-8],'CCCAT')<=4]
+            reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
+            reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==0)&(r.cigartuples[0][1]>5)&(r.cigartuples[1][0]==4)&(r.cigartuples[1][1]>6)&(r.cigartuples[1][1]<20)]
+
 
 
         #store start of reads and CB 
@@ -174,10 +184,11 @@ class get_TSS_count():
             if len(readinfodict[i])<2:
                 del readinfodict[i] 
 
+        print('hello,we finish get readinfodict')
         #store reads fetched
-        outfilename=self.count_out_dir+'fetch_reads.pkl'
-        with open(outfilename,'wb') as f:
-            pickle.dump(readinfodict,f)
+        # outfilename=self.count_out_dir+'fetch_reads.pkl'
+        # with open(outfilename,'wb') as f:
+        #     pickle.dump(readinfodict,f)
 
         return readinfodict
 
@@ -187,7 +198,6 @@ class get_TSS_count():
     def _do_clustering(self,success):
         geneid=success[0]
         readinfodict=success[1]  
-        altTSSls=[]
 
         # do hierarchical cluster
         clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
@@ -203,11 +213,13 @@ class get_TSS_count():
         #finalcount=list(selectcount[np.argsort(selectcount)[::-1]])
         finallabel=list(selectlabel[np.argsort(selectcount)[::-1]])
 
+        #after adding 
+        #numlabel=len(finallabel)    
 
+        altTSSls=[]
         if len(finallabel)>=2:
-            altTSSls=[]
             for i in range(0,len(finallabel)):
-                    altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
+                altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
 
                         
         return altTSSls
@@ -231,13 +243,16 @@ class get_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             altTSSls=pool.map_async(self._do_clustering,inputpar).get()
 
+        print('finish multi-processing')
+        # print(altTSSls)
+        # print(len(readls))
 
 
         for geneidSec, reslsSec in zip(readls,altTSSls):
             altTSSdict[geneidSec]=reslsSec
         altTSSdict={k: v for k, v in altTSSdict.items() if v}
 
-        # tss_output=self.count_out_dir+'without_anno_temp_tss.pkl'
+        # tss_output=self.count_out_dir+'gene_with_onecluster.pkl'
         # with open(tss_output,'wb') as f:
         #     pickle.dump(altTSSdict,f)
 
@@ -281,6 +296,10 @@ class get_TSS_count():
 
         
         fourfeaturedf=pd.DataFrame(clusterdict).T 
+        fourfeature_output=self.count_out_dir+'fourFeature.csv'
+        fourfeaturedf.to_csv(fourfeature_output)
+
+        print('one_gene_with_two_TSS_fourfeature : %i'%(len(fourfeaturedf)))
         test_X=fourfeaturedf.iloc[:,0:4]
 
         pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])+'/test/logistic_4feature_model.sav'
@@ -289,6 +308,11 @@ class get_TSS_count():
 
         #do filtering
         afterfiltereddf=fourfeaturedf[test_Y==1]
+        afterfilter_output=self.count_out_dir+'afterfiltered.csv'
+        afterfiltereddf.to_csv(afterfilter_output)
+        print('after_filter_false_positive_TSS_afterfiltereddf : %i'%(len(afterfiltereddf)))
+
+
         selectedf=afterfiltereddf[afterfiltereddf.duplicated(5,keep=False)] #select number of transcript is more than 2
         geneID=selectedf[5].unique()
 
@@ -304,11 +328,15 @@ class get_TSS_count():
             keepdfls.append(keepdf) 
 
         allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
+        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/allkeeped.csv')
+        # print('after_filter_accordingtoDistance_afterfiltereddf : %i'%(len(allkeepdf)))
 
         tss_output=self.count_out_dir+'allkeep.csv'
         allkeepdf.to_csv(tss_output)
 
         allkeepdf=allkeepdf[allkeepdf.duplicated(5,keep=False)]
+        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/final_keeped.csv')
+        # print('after_filtergene_toget_two_TSS_again_afterfiltereddf : %i'%(len(allkeepdf)))
 
 
         allgeneID=allkeepdf[5].unique()
@@ -338,7 +366,7 @@ class get_TSS_count():
         altTSSdict=inputpar[1]
         temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
 
-        print(geneid)
+        #print(geneid)
         # print(altTSSdict)
 
 
@@ -354,7 +382,7 @@ class get_TSS_count():
 
         #do quality control
         tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
-        print(tssls)
+        #print(tssls)
 
 
         transcriptdict={}
@@ -372,9 +400,9 @@ class get_TSS_count():
             newname2=str(geneid)+'_newTSS_2'
             transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
 
-        cluster_output=self.count_out_dir+'do_annotation.pkl'
-        with open(cluster_output,'wb') as f:
-            pickle.dump(transcriptdict,f)
+        # cluster_output=self.count_out_dir+'do_annotation.pkl'
+        # with open(cluster_output,'wb') as f:
+        #     pickle.dump(transcriptdict,f)
 
         
 
