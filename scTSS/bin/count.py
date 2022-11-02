@@ -1,7 +1,7 @@
 from optparse import OptionParser,OptionGroup
 from ..version import __version__
 import sys
-from ..utils.build_ref import get_TSSref,get_generef
+from ..utils.build_ref import get_TSSref,get_generef,get_filter_TSS
 from ..utils.get_counts import get_TSS_count
 from ..utils.get_count_no_novel import get_old_TSS_count
 import pyranges as pr
@@ -26,22 +26,18 @@ def main():
    
     group0=OptionGroup(parser,"Optional arguments")
 
-    group0.add_option("--minCount",type="int",dest="minCount",default=50,
-    help="Minimum counts for each transcript in all cells [default: 50]")
+    group0.add_option("--minCount",type="int",dest="minCount",default=30,
+    help="Minimum counts for each transcript in all cells [default: 30]")
     # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
     # help="No. of isoform keeping in for each gene [default: 2]")
     group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
     help='Number of subprocesses [default: 4]')
 
-    group0.add_option('--maxReadCount',type="int",dest='maxReadCount',default=50000,
-    help='For each gene, the maxmium read count kept for clustering[default: 50000]')
+    group0.add_option('--maxReadCount',type="int",dest='maxReadCount',default=10000,
+    help='For each gene, the maxmium read count kept for clustering[default: 10000]')
     
-    group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=500,
-    help="The minimum distance between two cluster transcription start site [default: 500]")
-
-    group0.add_option('--minPSI',type="float",dest='minPSI',default=0.1,
-    help="The minimum psi value for the minor TSS count and total TSS count [default: 0.1]")
-
+    group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=300,
+    help="The minimum distance between two cluster transcription start site [default: 300]")
 
 
 
@@ -107,7 +103,6 @@ def main():
     n_proc=options.nproc
     maxReadCount=options.maxReadCount
     clusterDistance=options.clusterDistance
-    minPSI=options.minPSI
     fastqFilePath=options.refFastq
 
 
@@ -115,11 +110,14 @@ def main():
 
         
     if options.mode == "Old":
-        getTSScount=get_old_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
+        filterTssPath=get_filter_TSS(tssdf,ref_out_dir)
+
+
+        getTSScount=get_old_TSS_count(generefpath,filterTssPath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
     else:
-        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,minPSI)
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
         run_time = time.time() - START_TIME

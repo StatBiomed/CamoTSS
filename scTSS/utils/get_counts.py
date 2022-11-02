@@ -94,7 +94,7 @@ def get_fastq_file(fastqFilePath):
 
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=500,psi=0.1):
+    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=10000,clusterDistance=300):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
@@ -105,7 +105,6 @@ class get_TSS_count():
         self.minCount=minCount
         self.cellBarcode=pd.read_csv(cellBarcodePath,delimiter='\t')['cell_id'].values
         self.nproc=nproc
-        self.psi=psi
         self.maxReadCount=maxReadCount
         self.clusterDistance=clusterDistance
         self.fastqFilePath=fastqFilePath
@@ -195,23 +194,34 @@ class get_TSS_count():
 
 
 
-    def _do_clustering(self,success):
-        geneid=success[0]
-        readinfodict=success[1]  
+    def _do_clustering(self,dictcontentls):
+        #geneid=success[0]
+        readinfo=dictcontentls
 
         # do hierarchical cluster
         clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
-        posiarray=np.array([t[0] for t in readinfodict[geneid]]).reshape(-1,1)
-        CBarray=np.array([t[1] for t in readinfodict[geneid]]).reshape(-1,1)
-        cigartuplearray=np.array([t[2] for t in readinfodict[geneid]]).reshape(-1,1)
+
+        posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
+
+        #print(posiarray.shape)
+
+        CBarray=np.array([t[1] for t in readinfo]).reshape(-1,1)
+        cigartuplearray=np.array([t[2] for t in readinfo]).reshape(-1,1)
         #seqarray=np.array([t[3] for t in readinfodict[geneid]]).reshape(-1,1)  #have more opportunity that this step has question
         clusterModel=clusterModel.fit(posiarray)
+
+        #print('finish clustering fit')
+
         labels=clusterModel.labels_
         label,count=np.unique(labels,return_counts=True)
+
+        #print('finish label unique')
         selectlabel=label[count>=self.minCount]
         selectcount=count[count>=self.minCount]
         #finalcount=list(selectcount[np.argsort(selectcount)[::-1]])
         finallabel=list(selectlabel[np.argsort(selectcount)[::-1]])
+
+        #print(finallabel)
 
         #after adding 
         #numlabel=len(finallabel)    
@@ -220,8 +230,9 @@ class get_TSS_count():
         if len(finallabel)>=2:
             for i in range(0,len(finallabel)):
                 altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
-
-                        
+        
+        #print(altTSSls)
+                       
         return altTSSls
 
 
@@ -232,18 +243,29 @@ class get_TSS_count():
 
         pool = multiprocessing.Pool(processes=self.nproc)
         readinfodict=self._get_gene_reads() 
+        print(len(readinfodict))
 
         altTSSdict={}
         altTSSls=[]
-        inputpar=[]
+        dictcontentls=[]
         readls=list(readinfodict.keys())
+        #print(len(readls))
+        print('unique gene id %i'%(len(set(readls))))
         for i in readls:
-            inputpar.append((i,readinfodict))
+            dictcontentls.append(readinfodict[i])
+
+        #print(inputpar[0])
+        print(len(dictcontentls))
+
+        #print(len(inputpar))
+
+
 
         with multiprocessing.Pool(self.nproc) as pool:
-            altTSSls=pool.map_async(self._do_clustering,inputpar).get()
+            altTSSls=pool.map_async(self._do_clustering,dictcontentls).get()
 
         print('finish multi-processing')
+        print("I need success")
         # print(altTSSls)
         # print(len(readls))
 
