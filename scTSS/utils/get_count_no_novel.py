@@ -95,7 +95,7 @@ def get_fastq_file(fastqFilePath):
 
 
 class get_old_TSS_count():
-    def __init__(self,generefPath,filterTssPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=50000,clusterDistance=200):
+    def __init__(self,generefPath,filterTssPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount,maxReadCount,clusterDistance):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(filterTssPath,delimiter='\t')
@@ -210,7 +210,7 @@ class get_old_TSS_count():
             label=np.unique(select)
             for i in range(0,len(label)):
                 keyid=generefdf.loc[label[i]]['gene_id']+'_'+generefdf.loc[label[i]]['transcript_id']
-                if len(select[select==label[i]])>=10:
+                if len(select[select==label[i]])>=self.minCount:
                     singletranscriptdict[keyid]=(len(select[select==label[i]]),selectCB[select==label[i]])
 
             if len(singletranscriptdict)>=2:

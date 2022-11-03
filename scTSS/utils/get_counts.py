@@ -185,9 +185,9 @@ class get_TSS_count():
 
         print('hello,we finish get readinfodict')
         #store reads fetched
-        # outfilename=self.count_out_dir+'fetch_reads.pkl'
-        # with open(outfilename,'wb') as f:
-        #     pickle.dump(readinfodict,f)
+        outfilename=self.count_out_dir+'fetch_reads.pkl'
+        with open(outfilename,'wb') as f:
+            pickle.dump(readinfodict,f)
 
         return readinfodict
 
@@ -199,7 +199,7 @@ class get_TSS_count():
         readinfo=dictcontentls
 
         # do hierarchical cluster
-        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
+        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=10)
 
         posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
 
@@ -378,8 +378,6 @@ class get_TSS_count():
             pickle.dump(keepdict,f)
 
         
-
-
         return keepdict
 
 
@@ -408,14 +406,14 @@ class get_TSS_count():
 
 
         transcriptdict={}
-        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<1000:
+        if np.absolute(tssls[0]-np.min(altTSSdict[geneid][0][0]))<=10:
             name1=str(geneid)+'_'+str(transcriptls[0])
             transcriptdict[name1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
         else:
             newname1=str(geneid)+'_newTSS_1'
             transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
 
-        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<1000:
+        if np.absolute(tssls[1]-np.min(altTSSdict[geneid][1][0]))<=10:
             name2=str(geneid)+'_'+str(transcriptls[1])
             transcriptdict[name2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
         else:
@@ -426,7 +424,6 @@ class get_TSS_count():
         # with open(cluster_output,'wb') as f:
         #     pickle.dump(transcriptdict,f)
 
-        
 
         #print(transcriptdict)
 
@@ -475,40 +472,30 @@ class get_TSS_count():
 
 
 
-    def get_transcriptls(self,eachtranscript):
-        
-        transcriptid=eachtranscript[0]
-
-        #here, using numpy structure
-        cellID,count=np.unique(eachtranscript[1][1],return_counts=True)
-        datatype=np.dtype({'names':['cellID',transcriptid],'formats':['S32','i']})
-        transnp=np.fromiter(zip(cellID,count),dtype=datatype)
-
-        return transnp
-
-
-
-
     def produce_sclevel(self):
         ctime=time.time()
         extendls,regiondf=self._TSS_annotation()
         #transcriptdfls=[]
-        pool = multiprocessing.Pool(processes=self.nproc)
 
-        with multiprocessing.Pool(self.nproc) as pool:
-            transcriptdfls=pool.map_async(self.get_transcriptls,extendls).get()
-
-
-
-        finalnp=reduce(lambda x,y: rfn.join_by('cellID',x,y,jointype='outer',usemask=True), transcriptdfls )
-        finalnp=finalnp.filled(0)
-        unstrfinalnp=rfn.structured_to_unstructured(finalnp)
+        cellIDls=[]
+        for i in range(0,len(extendls)):
+            cellID=np.unique(extendls[i][1][1])
+            cellIDls.append(list(cellID))
+        cellIDset = set([item for sublist in cellIDls for item in sublist])
+        finaldf=pd.DataFrame(index=cellIDset)
 
 
-        #ctime=time.time()
-        adata=ad.AnnData(unstrfinalnp[:,1:])
-        adata.obs.index=unstrfinalnp[:,0]
-        adata.var.index=finalnp.dtype.names[1:]
+
+        for i in range(0,len(extendls)):
+            transcriptid=extendls[i][0]       
+            cellID,count=np.unique(extendls[i][1][1],return_counts=True)
+            transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
+            transcriptdf.set_index('cell_id',inplace=True)
+            finaldf[transcriptid]=finaldf.index.map(transcriptdf[transcriptid])
+
+
+        finaldf.fillna(0,inplace=True)
+        adata=ad.AnnData(finaldf)
         vardf=pd.DataFrame(adata.var.copy())
         vardf.reset_index(inplace=True)
         vardf.columns=['transcript_id']
