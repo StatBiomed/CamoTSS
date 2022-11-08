@@ -112,19 +112,24 @@ class get_TSS_count():
         self.clusterDistance=clusterDistance
         self.fastqFilePath=fastqFilePath
 
-        
+
+    global readinfodict
+    readinfodict={}
+
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
         #fetch reads1 in gene 
         samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
+        #print(reads1_umi)
 
 
 
         #select according to GX tag and CB (filter according to user owned cell)
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
+
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
@@ -165,7 +170,7 @@ class get_TSS_count():
         bamfilePath=self.bamfilePath
         fastqFilePath=self.fastqFilePath
 
-        readinfodict={}
+        global readinfodict
         results=[]
 
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
@@ -259,7 +264,7 @@ class get_TSS_count():
         dictcontentls=[]
         readls=list(readinfodict.keys())
         #print(len(readls))
-        print('unique gene id %i'%(len(set(readls))))
+        #print('unique gene id %i'%(len(set(readls))))
         for i in readls:
             dictcontentls.append(readinfodict[i])
 
@@ -283,9 +288,9 @@ class get_TSS_count():
             altTSSdict[geneidSec]=reslsSec
         altTSSdict={k: v for k, v in altTSSdict.items() if v}
 
-        tss_output=self.count_out_dir+'gene_with_onecluster.pkl'
-        with open(tss_output,'wb') as f:
-            pickle.dump(altTSSdict,f)
+        # tss_output=self.count_out_dir+'gene_with_onecluster.pkl'
+        # with open(tss_output,'wb') as f:
+        #     pickle.dump(altTSSdict,f)
 
         print('do clustering Time elapsed',int(time.time()-start_time),'seconds.')
 
@@ -309,10 +314,10 @@ class get_TSS_count():
 
         for unannoIndex in unannoIndexls:
             try:
-                if ((specificGenedf.loc[unannoIndex]['diff']>50)|(np.isnan(specificGenedf.loc[annoIndex]['diff'])==True))&(specificGenedf.loc[unannoIndex+1]['diff']>50):
+                if ((specificGenedf.loc[unannoIndex]['diff']>200)|(np.isnan(specificGenedf.loc[annoIndex]['diff'])==True))&(specificGenedf.loc[unannoIndex+1]['diff']>200):
                     keepindex.append(unannoIndex)
             except KeyError:
-                if (specificGenedf.loc[unannoIndex]['diff']>50):
+                if (specificGenedf.loc[unannoIndex]['diff']>200):
                     keepindex.append(unannoIndex)
         
         specificGenedf=specificGenedf.loc[keepindex]
@@ -359,6 +364,8 @@ class get_TSS_count():
         
         fourfeaturedf=pd.DataFrame(clusterdict).T 
         fourfeaturedf.reset_index(inplace=True)
+        print(fourfeaturedf)
+
         fourfeaturedf.columns=['cluster_name','count','std','summit_count','unencodedG_percent','index','gene_id','summit_position']
         fourfeature_output=self.count_out_dir+'fourFeature.csv'
         fourfeaturedf.to_csv(fourfeature_output)
@@ -451,9 +458,9 @@ class get_TSS_count():
         start_time=time.time()
         pool = multiprocessing.Pool(processes=self.nproc)
 
-        readsfilename=self.count_out_dir+'fetch_reads.pkl'
-        with open(readsfilename,'rb') as f:
-            readinfodict=pickle.load(f)
+        # readsfilename=self.count_out_dir+'fetch_reads.pkl'
+        # with open(readsfilename,'rb') as f:
+        #     readinfodict=pickle.load(f)
 
         filterTSSdf=self._filter_false_positive()
         transcriptdictls=[]
@@ -474,9 +481,9 @@ class get_TSS_count():
         print('do distribution',int(time.time()-start_time),'seconds.')
 
         #store reads fetched
-        outfilename=self.count_out_dir+'transcript_store.pkl'
-        with open(outfilename,'wb') as f:
-            pickle.dump(transcriptdict,f)
+        # outfilename=self.count_out_dir+'transcript_store.pkl'
+        # with open(outfilename,'wb') as f:
+        #     pickle.dump(transcriptdict,f)
 
         return transcriptdict
 
@@ -516,6 +523,11 @@ class get_TSS_count():
 
         vardf.set_index('index',drop=True,inplace=True)
         adata.var=vardf
+        adata.var.reset_index(inplace=True)
+        adata.var['TSS']=adata.var['index'].str.split('@',expand=True)[1]
+        adata.var.set_index('index',drop=True,inplace=True)
+
+
         sc_output_h5ad=self.count_out_dir+'sc_TSS_count.h5ad'
         adata.write(sc_output_h5ad)
         print('produce h5ad Time elapsed',int(time.time()-ctime),'seconds.')

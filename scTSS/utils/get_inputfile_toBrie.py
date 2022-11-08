@@ -20,7 +20,9 @@ class get_brie_input():
 
     def get_h5adFile(self):
         adata=self.adata
-
+        adata.var['count']=adata.X.sum(axis=0)
+        selectindex=adata.var.sort_values(['gene_id','count'],ascending=False).groupby('gene_id').head(2).index
+        adata=adata[:,selectindex]
         adata=adata[:,adata.var['gene_id'].isin(self.originadata.var['gene_ids'])]
         originadata=self.originadata[self.originadata.obs.index.isin(adata.obs.index),self.originadata.var['gene_ids'].isin(adata.var['gene_id'])]
         splicedf=pd.DataFrame(adata.X,columns=adata.var.index)
