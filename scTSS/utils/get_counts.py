@@ -29,8 +29,6 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn import linear_model
 from pathlib import Path
 import sys
-from sklearn.neighbors import NearestNeighbors
-
 
 
 
@@ -100,7 +98,6 @@ class get_TSS_count():
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
-        self.tssrefdf['transcript_id']=self.tssrefdf['gene_id']+'_'+self.tssrefdf['transcript_id']
         self.bamfilePath=bamfilePath
         self.count_out_dir=str(outdir)+'/count/'
         if not os.path.exists(self.count_out_dir):
@@ -112,24 +109,19 @@ class get_TSS_count():
         self.clusterDistance=clusterDistance
         self.fastqFilePath=fastqFilePath
 
-
-    global readinfodict
-    readinfodict={}
-
+        
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
         #fetch reads1 in gene 
         samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
-        #print(reads1_umi)
 
 
 
         #select according to GX tag and CB (filter according to user owned cell)
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
-
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
@@ -170,7 +162,7 @@ class get_TSS_count():
         bamfilePath=self.bamfilePath
         fastqFilePath=self.fastqFilePath
 
-        global readinfodict
+        readinfodict={}
         results=[]
 
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
@@ -191,7 +183,7 @@ class get_TSS_count():
             if len(readinfodict[i])<2:
                 del readinfodict[i] 
 
-        #print('hello,we finish get readinfodict')
+        print('hello,we finish get readinfodict')
         #store reads fetched
         outfilename=self.count_out_dir+'fetch_reads.pkl'
         with open(outfilename,'wb') as f:
@@ -203,13 +195,12 @@ class get_TSS_count():
 
 
     def _do_clustering(self,dictcontentls):
-
-
         #geneid=success[0]
         readinfo=dictcontentls
 
         # do hierarchical cluster
         clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=10)
+
         posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
 
         #print(posiarray.shape)
@@ -236,9 +227,9 @@ class get_TSS_count():
         #numlabel=len(finallabel)    
 
         altTSSls=[]
-        #if len(finallabel)>=2:
-        for i in range(0,len(finallabel)):
-            altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
+        if len(finallabel)>=2:
+            for i in range(0,len(finallabel)):
+                altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
         
         #print(altTSSls)
                        
@@ -251,11 +242,6 @@ class get_TSS_count():
         start_time=time.time()
 
         pool = multiprocessing.Pool(processes=self.nproc)
-
-        # with open('/storage/yhhuang/users/ruiyan/iPSC/scRNAseq/scTSS_out/count/fetch_reads.pkl','rb') as f:
-        #     readinfodict=pickle.load(f)
-
-
         readinfodict=self._get_gene_reads() 
         print(len(readinfodict))
 
@@ -264,7 +250,7 @@ class get_TSS_count():
         dictcontentls=[]
         readls=list(readinfodict.keys())
         #print(len(readls))
-        #print('unique gene id %i'%(len(set(readls))))
+        print('unique gene id %i'%(len(set(readls))))
         for i in readls:
             dictcontentls.append(readinfodict[i])
 
@@ -278,8 +264,8 @@ class get_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             altTSSls=pool.map_async(self._do_clustering,dictcontentls).get()
 
-        #print('finish multi-processing')
-        #print("I need success")
+        print('finish multi-processing')
+        print("I need success")
         # print(altTSSls)
         # print(len(readls))
 
@@ -297,36 +283,6 @@ class get_TSS_count():
         return altTSSdict
 
 
-
-    def filter_closer_TSS(self,anno_unanno_gtf_df,gene_id):
-        specificGenedf=anno_unanno_gtf_df[anno_unanno_gtf_df['gene_id']==gene_id]
-        #print(specificGenedf)
-        specificGenedf.sort_values('TSS',inplace=True)
-        specificGenedf['diff']=specificGenedf['TSS'].diff()
-        specificGenedf.reset_index(inplace=True,drop=True)
-        annoIndexls=list(specificGenedf[specificGenedf['transcript_id'].str.contains('ENST')].index.values)
-        unannoIndexls=list(specificGenedf[specificGenedf['transcript_id'].str.contains('\*')].index.values)
-
-        keepindex=[]
-        for annoIndex in annoIndexls:
-            if (specificGenedf.loc[annoIndex]['diff']>5)|(np.isnan(specificGenedf.loc[annoIndex]['diff'])==True):
-                keepindex.append(annoIndex)
-
-        for unannoIndex in unannoIndexls:
-            try:
-                if ((specificGenedf.loc[unannoIndex]['diff']>200)|(np.isnan(specificGenedf.loc[annoIndex]['diff'])==True))&(specificGenedf.loc[unannoIndex+1]['diff']>200):
-                    keepindex.append(unannoIndex)
-            except KeyError:
-                if (specificGenedf.loc[unannoIndex]['diff']>200):
-                    keepindex.append(unannoIndex)
-        
-        specificGenedf=specificGenedf.loc[keepindex]
-
-                
-        if len(specificGenedf)>=2:
-            return specificGenedf
-
-
     def _filter_false_positive(self):
 
         altTSSdict=self._do_hierarchial_cluster()      
@@ -334,13 +290,12 @@ class get_TSS_count():
         ## get RNA-seq X
         #make a new dictionary
         clusterdict={}
-
         for i in altTSSdict.keys():
             for j in range(0,len(altTSSdict[i])):
                 #print(altTSSdict[i][j])
                 startpos=np.min(altTSSdict[i][j][0])
                 stoppos=np.max(altTSSdict[i][j][0])
-                clustername=str(i)+'_*'+str(startpos)+'_'+str(stoppos)
+                clustername=str(i)+'*'+str(startpos)+'_'+str(stoppos)
                 
 
                 count=len(altTSSdict[i][j][0])
@@ -363,175 +318,197 @@ class get_TSS_count():
 
         
         fourfeaturedf=pd.DataFrame(clusterdict).T 
-        fourfeaturedf.reset_index(inplace=True)
-        print(fourfeaturedf)
-
-        fourfeaturedf.columns=['cluster_name','count','std','summit_count','unencodedG_percent','index','gene_id','summit_position']
         fourfeature_output=self.count_out_dir+'fourFeature.csv'
         fourfeaturedf.to_csv(fourfeature_output)
 
-        geneID=fourfeaturedf['gene_id'].unique()
-
-        keepdfls=[]
-        for i in geneID:
-            tempdf=fourfeaturedf[fourfeaturedf['gene_id']==i]
-            
-            tempdf=tempdf.sort_values('count',ascending=False)
-            tempdf['diff']=tempdf['summit_position'].diff()
-            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]
-            keepdfls.append(keepdf) 
-        filterDistancedf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
-
-
-
-        #print('one_gene_with_two_TSS_fourfeature : %i'%(len(fourfeaturedf)))
-        test_X=filterDistancedf.iloc[:,1:5]
+        print('one_gene_with_two_TSS_fourfeature : %i'%(len(fourfeaturedf)))
+        test_X=fourfeaturedf.iloc[:,0:4]
 
         pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])+'/test/logistic_4feature_model.sav'
         loaded_model = pickle.load(open(pathstr, 'rb'))
         test_Y=loaded_model.predict(test_X.values)
 
         #do filtering
-        afterfiltereddf=filterDistancedf[test_Y==1] 
-
-        #print('after_filter_false_positive_TSS_afterfiltereddf : %i'%(len(afterfiltereddf)))
-        afterfiltereddf['cluster_start']=afterfiltereddf['cluster_name'].str.split('*',expand=True)[1].str.split('_',expand=True)[0]
-        afterfiltereddf['cluster_stop']=afterfiltereddf['cluster_name'].str.split('*',expand=True)[1].str.split('_',expand=True)[1]
-        afterfiltereddf=afterfiltereddf.merge(self.generefdf,on='gene_id')
-
-        afterfiltereddf=afterfiltereddf[['cluster_name','gene_id','gene_name','Chromosome','Strand','summit_position']]
-        afterfiltereddf.rename(columns={'cluster_name':'transcript_id','summit_position':'TSS'},inplace=True)
+        afterfiltereddf=fourfeaturedf[test_Y==1]
+        afterfilter_output=self.count_out_dir+'afterfiltered.csv'
+        afterfiltereddf.to_csv(afterfilter_output)
+        print('after_filter_false_positive_TSS_afterfiltereddf : %i'%(len(afterfiltereddf)))
 
 
-        anno_unanno_gtf_df=pd.concat([afterfiltereddf,self.tssrefdf],axis=0)
-        anno_unanno_gtf_df['transcript_id']=anno_unanno_gtf_df['transcript_id']+'@'+anno_unanno_gtf_df['TSS'].astype('str')
+        selectedf=afterfiltereddf[afterfiltereddf.duplicated(5,keep=False)] #select number of transcript is more than 2
+        geneID=selectedf[5].unique()
 
-        outfilename=self.count_out_dir+'anno_unanno_gtf.csv'
-        anno_unanno_gtf_df.to_csv(outfilename)
-        #print(anno_unanno_gtf_df)
+        #make sure the distance of cluster is more than user's defination distance 
+        keepdfls=[]
+        for i in geneID:
+            tempdf=selectedf[selectedf[5]==i]
+            
+            tempdf=tempdf.sort_values(0,ascending=False)
+            tempdf['diff']=tempdf[6].diff()
+            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]
+            keepdf=keepdf.iloc[:2,:]
+            keepdfls.append(keepdf) 
 
-        keepTSSls=[]
-        for geneid in anno_unanno_gtf_df['gene_id'].unique():
-            specificGenedf=self.filter_closer_TSS(anno_unanno_gtf_df,geneid)
-            keepTSSls.append(specificGenedf)
+        allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
+        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/allkeeped.csv')
+        # print('after_filter_accordingtoDistance_afterfiltereddf : %i'%(len(allkeepdf)))
 
-        filterTSSdf=reduce(lambda x,y:pd.concat([x,y],axis=0) ,keepTSSls)
-        filterTSSdf.dropna(subset=['Chromosome'],inplace=True)
+        tss_output=self.count_out_dir+'allkeep.csv'
+        allkeepdf.to_csv(tss_output)
 
-        return filterTSSdf
+        allkeepdf=allkeepdf[allkeepdf.duplicated(5,keep=False)]
+        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/final_keeped.csv')
+        # print('after_filtergene_toget_two_TSS_again_afterfiltereddf : %i'%(len(allkeepdf)))
+
+
+        allgeneID=allkeepdf[5].unique()
+        keepdict={}
+        for i in allgeneID:
+            selectgeneiddf=allkeepdf[allkeepdf[5]==i]
+            twotranscriptls=[]
+            for j in selectgeneiddf.index:
+                index=allkeepdf.loc[j][4]
+                twotranscriptls.append(altTSSdict[i][index])
+            keepdict[i]=twotranscriptls
 
 
 
-    def distribution(self,geneID,readinfo,filterTSSdf):
+        tss_output=self.count_out_dir+'keepdict.pkl'
+        with open(tss_output,'wb') as f:
+            pickle.dump(keepdict,f)
 
         
-        singletranscriptdict={}
-        try:
-            generefdf=filterTSSdf[filterTSSdf['gene_id']==geneID]
-            generefdf.reset_index(inplace=True,drop=True)
-            trainX=generefdf['TSS'].values.reshape(-1,1)
-            posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
-            CBarray=np.array([t[1] for t in readinfo]).reshape(-1,1)
-            nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(trainX)
-            distances, indices = nbrs.kneighbors(posiarray)
-            select=indices[distances<=5]
-            selectCB=CBarray[distances<=5]
-            label=np.unique(select)
-            for i in range(0,len(label)):
-                keyid=generefdf.loc[label[i]]['transcript_id']
-                if len(select[select==label[i]])>=self.minCount:
-                    singletranscriptdict[keyid]=(len(select[select==label[i]]),selectCB[select==label[i]])
-
-            #print(singletranscriptdict)
-            if len(singletranscriptdict)>=2:
-                return singletranscriptdict
-            else:
-                return {}
-            
-        except ValueError:
-            return {}
+        return keepdict
 
 
+    def _do_anno_and_filter(self,inputpar):
+        geneid=inputpar[0]
+        altTSSdict=inputpar[1]
+        temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
 
-    def get_transcriptdict(self,):
-
-        start_time=time.time()
-        pool = multiprocessing.Pool(processes=self.nproc)
-
-        # readsfilename=self.count_out_dir+'fetch_reads.pkl'
-        # with open(readsfilename,'rb') as f:
-        #     readinfodict=pickle.load(f)
-
-        filterTSSdf=self._filter_false_positive()
-        transcriptdictls=[]
-
-        for geneID in readinfodict.keys():
-            transcriptdictls.append(pool.apply_async(self.distribution,(geneID,readinfodict[geneID],filterTSSdf)))
-        pool.close()
-        pool.join()
-
-        transcriptdictls=[res.get() for res in transcriptdictls]
-
-        #print(transcriptdictls)
-        transcriptdict = {}
-        for d in transcriptdictls:
-            transcriptdict.update(d)
+        #print(geneid)
+        # print(altTSSdict)
 
 
-        print('do distribution',int(time.time()-start_time),'seconds.')
+        #use Hungarian algorithm to assign cluster to corresponding transcript
+        cost_mtx=np.zeros((2,temprefdf.shape[0]))
+        for i in range(2):
+            for j in range(temprefdf.shape[0]):
+                cluster_val=altTSSdict[geneid][i][0]
+                quanp=cluster_val[cluster_val<np.percentile(cluster_val,10)]
+                cost_mtx[i,j]=np.absolute(np.sum(quanp-temprefdf.iloc[j,5]))
+        row_ind, col_ind = linear_sum_assignment(cost_mtx)
+        transcriptls=list(temprefdf.iloc[col_ind,:]['transcript_id'])
 
-        #store reads fetched
-        # outfilename=self.count_out_dir+'transcript_store.pkl'
-        # with open(outfilename,'wb') as f:
+        #do quality control
+        tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
+        #print(tssls)
+
+
+        transcriptdict={}
+        if (tssls[0]>np.min(altTSSdict[geneid][0][0]-10)) & (tssls[0]<np.max(altTSSdict[geneid][0][0]+10)):
+            name1=str(geneid)+'_'+str(transcriptls[0])
+            transcriptdict[name1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2]) 
+        else:
+            newname1=str(geneid)+'_newTSS_1'
+            transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
+
+        if (tssls[1]>np.min(altTSSdict[geneid][1][0]-10)) & (tssls[1]<np.max(altTSSdict[geneid][1][0]+10)):
+            name2=str(geneid)+'_'+str(transcriptls[1])
+            transcriptdict[name2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
+        else:
+            newname2=str(geneid)+'_newTSS_2'
+            transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
+
+
+        # cluster_output=self.count_out_dir+'do_annotation.pkl'
+        # with open(cluster_output,'wb') as f:
         #     pickle.dump(transcriptdict,f)
+
+
+        #print(transcriptdict)
 
         return transcriptdict
 
 
 
+    def _TSS_annotation(self):
+        start_time=time.time()
+
+        keepdict=self._filter_false_positive()
+        
+        inputpar=[]
+        for i in keepdict:
+            inputpar.append((i,keepdict))
+
+        #print(inputpar)
+
+        pool = multiprocessing.Pool(processes=self.nproc)
+        with multiprocessing.Pool(self.nproc) as pool:
+            #transcriptdictls=pool.map_async(self.filter_false_positive,inputpar).get()
+            transcriptdictls=pool.map_async(self._do_anno_and_filter,inputpar).get()
+
+
+        # tss_output=self.count_out_dir+'temp_tss.pkl'
+        # with open(tss_output,'wb') as f:
+        #     pickle.dump(transcriptdictls,f)
+
+        extendls=[]
+        for d in transcriptdictls:
+            extendls.extend(list(d.items()))
+
+
+        
+        ### organize the output result
+        d={'transcript_id':[transcript[0] for transcript in extendls],'TSS_start':[np.min(transcript[1][0]) for transcript in extendls],
+        'TSS_end':[np.max(transcript[1][0]) for transcript in extendls]}
+
+        regiondf=pd.DataFrame(d)
+        print('do annotation Time elapsed',int(time.time()-start_time),'seconds.')
+        # print(extendls)
+        # print(regiondf)
+
+        return extendls,regiondf
+
+
+
+
     def produce_sclevel(self):
         ctime=time.time()
-        transcriptdict=self.get_transcriptdict()
+        extendls,regiondf=self._TSS_annotation()
+        #transcriptdfls=[]
 
         cellIDls=[]
-        for transcriptID in transcriptdict.keys():
-            cellID=np.unique(transcriptdict[transcriptID][1])
+        for i in range(0,len(extendls)):
+            cellID=np.unique(extendls[i][1][1])
             cellIDls.append(list(cellID))
         cellIDset = set([item for sublist in cellIDls for item in sublist])
         finaldf=pd.DataFrame(index=cellIDset)
 
 
-        for transcriptID in transcriptdict.keys():
-            cellID,count=np.unique(transcriptdict[transcriptID][1],return_counts=True)
-            transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptID:count})
+
+        for i in range(0,len(extendls)):
+            transcriptid=extendls[i][0]       
+            cellID,count=np.unique(extendls[i][1][1],return_counts=True)
+            transcriptdf=pd.DataFrame({'cell_id':cellID,transcriptid:count})
             transcriptdf.set_index('cell_id',inplace=True)
-            finaldf[transcriptID]=finaldf.index.map(transcriptdf[transcriptID])
+            finaldf[transcriptid]=finaldf.index.map(transcriptdf[transcriptid])
+
+
         finaldf.fillna(0,inplace=True)
-        #print(finaldf)
-        adata=ad.AnnData(finaldf) 
-  
-        
+        adata=ad.AnnData(finaldf)
         vardf=pd.DataFrame(adata.var.copy())
         vardf.reset_index(inplace=True)
-
-        vardf['gene_id']=vardf['index'].str.split('_',expand=True)[0]
-        #print(vardf)
+        vardf.columns=['transcript_id']
+        vardf=vardf.join(regiondf.set_index('transcript_id'), on='transcript_id')
+        vardf['gene_id']=vardf['transcript_id'].str.split('_',expand=True)[0]
         vardf=vardf.merge(self.generefdf,on='gene_id')
+        vardf.set_index('transcript_id',drop=True,inplace=True)
 
-
-
-
-        vardf.set_index('index',drop=True,inplace=True)
         adata.var=vardf
-        adata.var.reset_index(inplace=True)
-        adata.var['TSS']=adata.var['index'].str.split('@',expand=True)[1]
-        adata.var.set_index('index',drop=True,inplace=True)
-
-
         sc_output_h5ad=self.count_out_dir+'sc_TSS_count.h5ad'
         adata.write(sc_output_h5ad)
         print('produce h5ad Time elapsed',int(time.time()-ctime),'seconds.')
 
 
         return adata
-
