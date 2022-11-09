@@ -1,33 +1,18 @@
-import brie
 import numpy as np
 import pandas as pd
-from brie.utils import fetch_reads,load_samfile
+from brie.utils import fetch_reads
 import os
 import pickle
 from functools import reduce
 import anndata as ad
 import multiprocessing 
-from pathos.multiprocessing import ProcessingPool 
-import pathos.pools as pp
 import pysam
-from sklearn.cluster import AgglomerativeClustering
-from scipy.optimize import linear_sum_assignment
 import time
-from sklearn.cluster import KMeans
-from collections import defaultdict
 from os import getpid
 import random
 import pickle
-import numpy.lib.recfunctions as rfn
-import numpy.ma as ma
-from itertools import compress
-import statistics
 import editdistance
 import warnings
-from collections import ChainMap
-from sklearn.preprocessing import MinMaxScaler
-from sklearn import linear_model
-from pathlib import Path
 import sys
 from sklearn.neighbors import NearestNeighbors
 
@@ -209,7 +194,7 @@ class get_old_TSS_count():
             selectCB=CBarray[distances<=5]
             label=np.unique(select)
             for i in range(0,len(label)):
-                keyid=generefdf.loc[label[i]]['gene_id']+'_'+generefdf.loc[label[i]]['transcript_id']
+                keyid=generefdf.loc[label[i]]['gene_id']+'_'+generefdf.loc[label[i]]['transcript_id']+'@'+generefdf.loc[label[i]]['TSS'].astype('str')
                 if len(select[select==label[i]])>=self.minCount:
                     singletranscriptdict[keyid]=(len(select[select==label[i]]),selectCB[select==label[i]])
 
@@ -238,7 +223,7 @@ class get_old_TSS_count():
 
         transcriptdictls=[res.get() for res in transcriptdictls]
 
-        print(transcriptdictls)
+        #print(transcriptdictls)
         transcriptdict = {}
         for d in transcriptdictls:
             transcriptdict.update(d)

@@ -20,9 +20,7 @@ class get_brie_input():
 
     def get_h5adFile(self):
         adata=self.adata
-        adata.var['count']=adata.X.sum(axis=0)
-        selectindex=adata.var.sort_values(['gene_id','count'],ascending=False).groupby('gene_id').head(2).index
-        adata=adata[:,selectindex]
+
         adata=adata[:,adata.var['gene_id'].isin(self.originadata.var['gene_ids'])]
         originadata=self.originadata[self.originadata.obs.index.isin(adata.obs.index),self.originadata.var['gene_ids'].isin(adata.var['gene_id'])]
         splicedf=pd.DataFrame(adata.X,columns=adata.var.index)
@@ -47,6 +45,7 @@ class get_brie_input():
     def get_cluster_cdrFile(self,mode,originadata):
 
         #pcdf=self.cellinfodf[['cell_id','PC1','PC2','PC3','PC4','PC5']]
+        #pcdf=pd.DataFrame(originadata.obs.index,columns=['cell_id'])
         pcdf=self.cellinfodf[['cell_id']]
 
         #quant_input,addrawadata=self.get_h5adFile()
@@ -79,6 +78,5 @@ class get_brie_input():
         cdrdf.to_csv(cdr_input,sep='\t')
 
         return cdr_input,numls
-
 
 

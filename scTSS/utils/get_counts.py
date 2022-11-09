@@ -1,32 +1,19 @@
-import brie
 import numpy as np
 import pandas as pd
-from brie.utils import fetch_reads,load_samfile
 import os
 import pickle
 from functools import reduce
 import anndata as ad
 import multiprocessing 
-from pathos.multiprocessing import ProcessingPool 
-import pathos.pools as pp
 import pysam
 from sklearn.cluster import AgglomerativeClustering
 from scipy.optimize import linear_sum_assignment
 import time
-from sklearn.cluster import KMeans
-from collections import defaultdict
-from os import getpid
 import random
 import pickle
-import numpy.lib.recfunctions as rfn
-import numpy.ma as ma
-from itertools import compress
 import statistics
 import editdistance
 import warnings
-from collections import ChainMap
-from sklearn.preprocessing import MinMaxScaler
-from sklearn import linear_model
 from pathlib import Path
 import sys
 
@@ -183,7 +170,7 @@ class get_TSS_count():
             if len(readinfodict[i])<2:
                 del readinfodict[i] 
 
-        print('hello,we finish get readinfodict')
+        #print('hello,we finish get readinfodict')
         #store reads fetched
         outfilename=self.count_out_dir+'fetch_reads.pkl'
         with open(outfilename,'wb') as f:
@@ -199,7 +186,7 @@ class get_TSS_count():
         readinfo=dictcontentls
 
         # do hierarchical cluster
-        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=10)
+        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
 
         posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
 
@@ -250,12 +237,12 @@ class get_TSS_count():
         dictcontentls=[]
         readls=list(readinfodict.keys())
         #print(len(readls))
-        print('unique gene id %i'%(len(set(readls))))
+        #print('unique gene id %i'%(len(set(readls))))
         for i in readls:
             dictcontentls.append(readinfodict[i])
 
         #print(inputpar[0])
-        print(len(dictcontentls))
+        #print(len(dictcontentls))
 
         #print(len(inputpar))
 
@@ -265,7 +252,7 @@ class get_TSS_count():
             altTSSls=pool.map_async(self._do_clustering,dictcontentls).get()
 
         print('finish multi-processing')
-        print("I need success")
+        #print("I need success")
         # print(altTSSls)
         # print(len(readls))
 
