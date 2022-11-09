@@ -22,7 +22,7 @@ Quick start
 scTSS-count
 ===========
 
-** STEP1:   Processing **
+**STEP1:   Processing**
 
 
 scTSS mainly deal with the output from cellranger (a common alignment tool for 10x data).
@@ -38,7 +38,7 @@ The preprocessing procedure based on the output file of cellranger.
     5. samtools view -b possorted_genome_bam_filterd.sam > possorted_genome_bam_filterd.bam
     6. samtools index possorted_genome_bam_filterd.bam possorted_genome_bam_filterd.bam.bai
  
-** STEP2:   Run scTSS-count **
+**STEP2:   Run scTSS-count**
 
 .. code-block:: bash
         scTSS-count --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
