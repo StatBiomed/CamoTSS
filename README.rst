@@ -41,6 +41,7 @@ The preprocessing procedure based on the output file of cellranger.
 **STEP2:   Run scTSS-count**
 
 .. code-block:: bash
+
         scTSS-count --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
 
 Want to learn about more parameter, you can use ``scTSS-count --help`` to check. 
