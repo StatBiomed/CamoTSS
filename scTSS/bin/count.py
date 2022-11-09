@@ -20,7 +20,7 @@ def main():
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
     parser.add_option('--refFastq','-r',dest='refFastq',default=None,help='The directory for reference fastq file') #what should be after $
-    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS mode [New] or just based on gtf annotation file [Old]')
+    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS mode [Unannotation] or just based on gtf annotation file [Annotation]')
 
    
    
@@ -109,14 +109,14 @@ def main():
 
 
         
-    if options.mode == "Old":
+    if options.mode == "Annotation":
         filterTssPath=get_filter_TSS(tssdf,ref_out_dir)
 
 
         getTSScount=get_old_TSS_count(generefpath,filterTssPath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
-    else:
+    if options.mode=="Unannotation":
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
