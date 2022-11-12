@@ -116,9 +116,12 @@ def main():
         getTSScount=get_old_TSS_count(generefpath,filterTssPath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
-    if options.mode=="Unannotation":
+    elif options.mode=="Unannotation":
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
+
+    else:
+        print('Do not have this mode. Please check your spell!')
 
         run_time = time.time() - START_TIME
         print("[scTSS-count] All done: %d min %.1f sec" %(int(run_time / 60), 

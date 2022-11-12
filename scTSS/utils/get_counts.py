@@ -16,6 +16,7 @@ import editdistance
 import warnings
 from pathlib import Path
 import sys
+from brie.utils import fetch_reads
 
 
 
