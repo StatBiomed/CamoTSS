@@ -215,9 +215,9 @@ class get_TSS_count():
         #numlabel=len(finallabel)    
 
         altTSSls=[]
-        if len(finallabel)>=2:
-            for i in range(0,len(finallabel)):
-                altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
+        #if len(finallabel)>=2:
+        for i in range(0,len(finallabel)):
+            altTSSls.append([posiarray[labels==finallabel[i]],CBarray[labels==finallabel[i]],cigartuplearray[labels==finallabel[i]]])
         
         #print(altTSSls)
                        
@@ -231,7 +231,7 @@ class get_TSS_count():
 
         pool = multiprocessing.Pool(processes=self.nproc)
         readinfodict=self._get_gene_reads() 
-        print(len(readinfodict))
+        #print(len(readinfodict))
 
         altTSSdict={}
         altTSSls=[]
@@ -252,7 +252,7 @@ class get_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             altTSSls=pool.map_async(self._do_clustering,dictcontentls).get()
 
-        print('finish multi-processing')
+        #print('finish do')
         #print("I need success")
         # print(altTSSls)
         # print(len(readls))
@@ -334,7 +334,7 @@ class get_TSS_count():
             tempdf=tempdf.sort_values(0,ascending=False)
             tempdf['diff']=tempdf[6].diff()
             keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]
-            keepdf=keepdf.iloc[:2,:]
+            #keepdf=keepdf.iloc[:2,:]
             keepdfls.append(keepdf) 
 
         allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
@@ -344,7 +344,7 @@ class get_TSS_count():
         tss_output=self.count_out_dir+'allkeep.csv'
         allkeepdf.to_csv(tss_output)
 
-        allkeepdf=allkeepdf[allkeepdf.duplicated(5,keep=False)]
+        #allkeepdf=allkeepdf[allkeepdf.duplicated(5,keep=False)]
         # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/final_keeped.csv')
         # print('after_filtergene_toget_two_TSS_again_afterfiltereddf : %i'%(len(allkeepdf)))
 
@@ -371,7 +371,7 @@ class get_TSS_count():
 
     def _do_anno_and_filter(self,inputpar):
         geneid=inputpar[0]
-        altTSSdict=inputpar[1]
+        altTSSitemdict=inputpar[1]
         temprefdf=self.tssrefdf[self.tssrefdf['gene_id']==geneid]
 
         #print(geneid)
@@ -379,34 +379,55 @@ class get_TSS_count():
 
 
         #use Hungarian algorithm to assign cluster to corresponding transcript
-        cost_mtx=np.zeros((2,temprefdf.shape[0]))
-        for i in range(2):
+        cost_mtx=np.zeros((len(altTSSitemdict),temprefdf.shape[0]))
+        for i in range(len(altTSSitemdict)):
             for j in range(temprefdf.shape[0]):
-                cluster_val=altTSSdict[geneid][i][0]
+                cluster_val=altTSSitemdict[i][0]
                 quanp=cluster_val[cluster_val<np.percentile(cluster_val,10)]
                 cost_mtx[i,j]=np.absolute(np.sum(quanp-temprefdf.iloc[j,5]))
         row_ind, col_ind = linear_sum_assignment(cost_mtx)
         transcriptls=list(temprefdf.iloc[col_ind,:]['transcript_id'])
 
+        # print(row_ind)
+        # print(col_ind)
+
         #do quality control
         tssls=list(temprefdf.iloc[col_ind,:]['TSS'])
         #print(tssls)
 
-
         transcriptdict={}
-        if (tssls[0]>np.min(altTSSdict[geneid][0][0]-10)) & (tssls[0]<np.max(altTSSdict[geneid][0][0]+10)):
-            name1=str(geneid)+'_'+str(transcriptls[0])
-            transcriptdict[name1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2]) 
-        else:
-            newname1=str(geneid)+'_newTSS_1'
-            transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
+        for i in range(0,len(tssls)):
+            if (tssls[i]>np.min(altTSSitemdict[i][0]-10)) & (tssls[i]<np.max(altTSSitemdict[i][0]+10)):
+                name1=str(geneid)+'_'+str(transcriptls[i])
+                transcriptdict[name1]=(altTSSitemdict[row_ind[i]][0],altTSSitemdict[row_ind[i]][1],altTSSitemdict[row_ind[i]][2])
+            else:
+                newname1=str(geneid)+'_newTSS'
+                transcriptdict[newname1]=(altTSSitemdict[row_ind[i]][0],altTSSitemdict[row_ind[i]][1],altTSSitemdict[row_ind[i]][2])
+        #print(transcriptdict)
 
-        if (tssls[1]>np.min(altTSSdict[geneid][1][0]-10)) & (tssls[1]<np.max(altTSSdict[geneid][1][0]+10)):
-            name2=str(geneid)+'_'+str(transcriptls[1])
-            transcriptdict[name2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
-        else:
-            newname2=str(geneid)+'_newTSS_2'
-            transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
+
+
+
+
+
+
+
+
+
+        # transcriptdict={}
+        # if (tssls[0]>np.min(altTSSdict[geneid][0][0]-10)) & (tssls[0]<np.max(altTSSdict[geneid][0][0]+10)):
+        #     name1=str(geneid)+'_'+str(transcriptls[0])
+        #     transcriptdict[name1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2]) 
+        # else:
+        #     newname1=str(geneid)+'_newTSS_1'
+        #     transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
+
+        # if (tssls[1]>np.min(altTSSdict[geneid][1][0]-10)) & (tssls[1]<np.max(altTSSdict[geneid][1][0]+10)):
+        #     name2=str(geneid)+'_'+str(transcriptls[1])
+        #     transcriptdict[name2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
+        # else:
+        #     newname2=str(geneid)+'_newTSS_2'
+        #     transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
 
 
         # cluster_output=self.count_out_dir+'do_annotation.pkl'
@@ -424,10 +445,12 @@ class get_TSS_count():
         start_time=time.time()
 
         keepdict=self._filter_false_positive()
+
+        keepIDls=list(keepdict.keys())
         
         inputpar=[]
-        for i in keepdict:
-            inputpar.append((i,keepdict))
+        for i in keepIDls:
+            inputpar.append((i,keepdict[i]))
 
         #print(inputpar)
 
@@ -494,8 +517,16 @@ class get_TSS_count():
         vardf.set_index('transcript_id',drop=True,inplace=True)
 
         adata.var=vardf
-        sc_output_h5ad=self.count_out_dir+'sc_TSS_count.h5ad'
+        sc_output_h5ad=self.count_out_dir+'scTSS_count_all.h5ad'
         adata.write(sc_output_h5ad)
+
+        twoindexselect=adata.var[adata.var.duplicated('gene_id',keep=False)].index
+        twoadata=adata[:,twoindexselect]
+
+        sc_output_h5ad=self.count_out_dir+'scTSS_count_two.h5ad'
+        twoadata.write(sc_output_h5ad)
+
+
         print('produce h5ad Time elapsed',int(time.time()-ctime),'seconds.')
 
 
