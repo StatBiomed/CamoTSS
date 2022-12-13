@@ -57,20 +57,17 @@ Annotation means that you can detect TSS based on the annotation. The distance b
 You can check our paper to learn more detail. 
 
 
-scTSS-quant
+For multiple samples preprocessing
 ===========
 
 .. code-block:: bash
 
-        scTSS-quant -g $filtered_feature_bc_matrix -c $cluster_toscTSS.tsv --countOut $scTSS_count_folder -m cluster -o $scTSS_quant_folder
+        import pysam
+        inbam=pysam.Samfile(
 
-Please use ``scTSS-quant --help`` to check more parameter.
+        
 
-Here, you can select one of the mode from cluster and disease. 
 
-Cluster means that you can detect cell type-specific TSS. Any multiple groups detection can use this mode.
-
-Disease mode help you select disease-specific TSS. Any two groups detection can use this mode. 
 
 
 

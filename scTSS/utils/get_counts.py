@@ -333,7 +333,7 @@ class get_TSS_count():
             
             tempdf=tempdf.sort_values(0,ascending=False)
             tempdf['diff']=tempdf[6].diff()
-            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]
+            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]    #there has some problem
             #keepdf=keepdf.iloc[:2,:]
             keepdfls.append(keepdf) 
 
