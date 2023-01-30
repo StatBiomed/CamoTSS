@@ -20,7 +20,7 @@ def main():
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
     parser.add_option('--refFastq','-r',dest='refFastq',default=None,help='The directory for reference fastq file') #what should be after $
-    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS mode [Unannotation] or just based on gtf annotation file [Annotation]')
+    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS mode [Unannotation] or just based on gtf annotation file [Annotation]. In addition, if you also want to detect CTSS information, you can use [Unannotation_addCTSS] mode')
 
    
    
@@ -38,6 +38,20 @@ def main():
     
     group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=300,
     help="The minimum distance between two cluster transcription start site [default: 300]")
+
+    group0.add_option('--InnerDistance',type="float",dest='InnerDistance',default=100,
+    help="The resolution of each cluster [default: 100]")
+
+    group0.add_option('--windowSize',type="float",dest='windowSize',default=20,
+    help="The width of sliding window [default: 20]")
+
+    group0.add_option('--minCTSSCount',type="float",dest='minCTSSCount',default=100,
+    help="The minimum UMI counts for each CTSS [default: 100]")
+
+    group0.add_option('--minFC',type="float",dest='minFC',default=6,
+    help="The minimum fold change for filtering CTSS [default: 6]")
+
+
 
 
 
@@ -103,7 +117,11 @@ def main():
     n_proc=options.nproc
     maxReadCount=options.maxReadCount
     clusterDistance=options.clusterDistance
+    InnerDistance=options.InnerDistance
     fastqFilePath=options.refFastq
+    windowSize=options.windowSize
+    minCTSSCount=options.minCTSSCount
+    minFC=options.minFC
 
 
 
@@ -111,14 +129,19 @@ def main():
         
     if options.mode == "Annotation":
         filterTssPath=get_filter_TSS(tssdf,ref_out_dir)
-
-
         getTSScount=get_old_TSS_count(generefpath,filterTssPath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
         scadata=getTSScount.produce_sclevel()
 
-    elif options.mode=="Unannotation":
-        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance)
+    elif options.mode=="Unannotation_addCTSS":
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC)
         scadata=getTSScount.produce_sclevel()
+        twoctssadata=getTSScount.produce_CTSS_adata()
+
+    elif options.mode=="Unannotation":
+        getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC)
+        scadata=getTSScount.produce_sclevel()
+
+
 
     else:
         print('Do not have this mode. Please check your spell!')

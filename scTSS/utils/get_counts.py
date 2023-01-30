@@ -82,7 +82,10 @@ def get_fastq_file(fastqFilePath):
 
 
 class get_TSS_count():
-    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount=50,maxReadCount=10000,clusterDistance=300):
+
+
+
+    def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
@@ -90,12 +93,22 @@ class get_TSS_count():
         self.count_out_dir=str(outdir)+'/count/'
         if not os.path.exists(self.count_out_dir):
             os.mkdir(self.count_out_dir)
+
+        self.ctss_out_dir=str(outdir)+'/CTSS/'
+        if not os.path.exists(self.ctss_out_dir):
+            os.mkdir(self.ctss_out_dir)
+
+
         self.minCount=minCount
         self.cellBarcode=pd.read_csv(cellBarcodePath,delimiter='\t')['cell_id'].values
         self.nproc=nproc
         self.maxReadCount=maxReadCount
         self.clusterDistance=clusterDistance
         self.fastqFilePath=fastqFilePath
+        self.InnerDistance=InnerDistance
+        self.windowSize=windowSize
+        self.minCTSSCount=minCTSSCount
+        self.minFC=minFC
 
         
 
@@ -177,6 +190,7 @@ class get_TSS_count():
         with open(outfilename,'wb') as f:
             pickle.dump(readinfodict,f)
 
+
         return readinfodict
 
 
@@ -187,7 +201,7 @@ class get_TSS_count():
         readinfo=dictcontentls
 
         # do hierarchical cluster
-        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=100)
+        clusterModel = AgglomerativeClustering(n_clusters=None,linkage='average',distance_threshold=self.InnerDistance)
 
         posiarray=np.array([t[0] for t in readinfo]).reshape(-1,1)
 
@@ -252,10 +266,6 @@ class get_TSS_count():
         with multiprocessing.Pool(self.nproc) as pool:
             altTSSls=pool.map_async(self._do_clustering,dictcontentls).get()
 
-        #print('finish do')
-        #print("I need success")
-        # print(altTSSls)
-        # print(len(readls))
 
 
         for geneidSec, reslsSec in zip(readls,altTSSls):
@@ -324,6 +334,10 @@ class get_TSS_count():
 
 
         selectedf=afterfiltereddf[afterfiltereddf.duplicated(5,keep=False)] #select number of transcript is more than 2
+
+        twotranscriptpath=self.count_out_dir+'twotranscript.csv'
+        selectedf.to_csv(twotranscriptpath)
+
         geneID=selectedf[5].unique()
 
         #make sure the distance of cluster is more than user's defination distance 
@@ -338,15 +352,10 @@ class get_TSS_count():
             keepdfls.append(keepdf) 
 
         allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
-        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/allkeeped.csv')
-        # print('after_filter_accordingtoDistance_afterfiltereddf : %i'%(len(allkeepdf)))
-
         tss_output=self.count_out_dir+'allkeep.csv'
         allkeepdf.to_csv(tss_output)
 
-        #allkeepdf=allkeepdf[allkeepdf.duplicated(5,keep=False)]
-        # allkeepdf.to_csv('/storage/yhhuang/users/ruiyan/15organ/SRR13075718_scTSS_out/count/final_keeped.csv')
-        # print('after_filtergene_toget_two_TSS_again_afterfiltereddf : %i'%(len(allkeepdf)))
+
 
 
         allgeneID=allkeepdf[5].unique()
@@ -397,7 +406,7 @@ class get_TSS_count():
 
         transcriptdict={}
         for i in range(0,len(tssls)):
-            if (tssls[i]>np.min(altTSSitemdict[i][0]-10)) & (tssls[i]<np.max(altTSSitemdict[i][0]+10)):
+            if (tssls[i]>=np.min(altTSSitemdict[i][0])) & (tssls[i]<=np.max(altTSSitemdict[i][0])):
                 name1=str(geneid)+'_'+str(transcriptls[i])
                 transcriptdict[name1]=(altTSSitemdict[row_ind[i]][0],altTSSitemdict[row_ind[i]][1],altTSSitemdict[row_ind[i]][2])
             else:
@@ -406,36 +415,6 @@ class get_TSS_count():
         #print(transcriptdict)
 
 
-
-
-
-
-
-
-
-
-        # transcriptdict={}
-        # if (tssls[0]>np.min(altTSSdict[geneid][0][0]-10)) & (tssls[0]<np.max(altTSSdict[geneid][0][0]+10)):
-        #     name1=str(geneid)+'_'+str(transcriptls[0])
-        #     transcriptdict[name1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2]) 
-        # else:
-        #     newname1=str(geneid)+'_newTSS_1'
-        #     transcriptdict[newname1]=(altTSSdict[geneid][row_ind[0]][0],altTSSdict[geneid][row_ind[0]][1],altTSSdict[geneid][row_ind[0]][2])
-
-        # if (tssls[1]>np.min(altTSSdict[geneid][1][0]-10)) & (tssls[1]<np.max(altTSSdict[geneid][1][0]+10)):
-        #     name2=str(geneid)+'_'+str(transcriptls[1])
-        #     transcriptdict[name2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])  
-        # else:
-        #     newname2=str(geneid)+'_newTSS_2'
-        #     transcriptdict[newname2]=(altTSSdict[geneid][row_ind[1]][0],altTSSdict[geneid][row_ind[1]][1],altTSSdict[geneid][row_ind[1]][2])
-
-
-        # cluster_output=self.count_out_dir+'do_annotation.pkl'
-        # with open(cluster_output,'wb') as f:
-        #     pickle.dump(transcriptdict,f)
-
-
-        #print(transcriptdict)
 
         return transcriptdict
 
@@ -451,8 +430,6 @@ class get_TSS_count():
         inputpar=[]
         for i in keepIDls:
             inputpar.append((i,keepdict[i]))
-
-        #print(inputpar)
 
         pool = multiprocessing.Pool(processes=self.nproc)
         with multiprocessing.Pool(self.nproc) as pool:
@@ -531,3 +508,181 @@ class get_TSS_count():
 
 
         return adata
+
+
+
+
+
+
+    def window_sliding(self,genereads,TSS_start,TSS_end):
+
+        leftIndex=0
+
+        # do filtering; drop reads which does not include unencoded G
+        filterls=[]
+        for i in genereads:
+            if ('14S' in i[2]) or ('15S' in i[2]) or ('16S' in i[2]):
+                filterls.append(i)
+
+
+        #calculate the TSS position and corresponding counts
+        promoterTSS=[]
+        for read in filterls:
+            tss=read[0]
+            if (tss>=TSS_start)&(tss<=TSS_end):
+                promoterTSS.append(tss)
+        TSS,count=np.unique(promoterTSS,return_counts=True)
+
+
+        #do something with sliding windows algorithm   
+        storels=[]
+        for i in range(len(TSS) - self.windowSize + 1):
+            onewindow=TSS[i: i + self.windowSize]
+            correspondingcount=count[i: i + self.windowSize]
+            middlecount=correspondingcount[leftIndex]
+            foldchange=(middlecount+1)/(sum(correspondingcount)/len(correspondingcount)+1)
+            storels.append([onewindow[leftIndex],correspondingcount[leftIndex],foldchange])
+            
+        foldchangels=[i[2] for i in storels]
+        sortindex=sorted(range(len(foldchangels)), key=lambda k: foldchangels[k],reverse=True)
+        allsortls=[storels[i] for i in sortindex]
+
+        return allsortls
+
+
+
+    def _get_CTSS(self,fetchadata):
+        oneclusterfilePath=self.count_out_dir+'afterfiltered.csv'
+        alloneclusterdf=pd.read_csv(oneclusterfilePath)
+        alloneclusterdf['gene_id']=alloneclusterdf['Unnamed: 0'].str.split('*',expand=True)[0]
+        alloneclusterdf['TSS_start']=alloneclusterdf['Unnamed: 0'].str.split('*',expand=True)[1].str.split('_',expand=True)[0].astype('float')
+        alloneclusterdf['TSS_end']=alloneclusterdf['Unnamed: 0'].str.split('_',expand=True)[1].astype('float')
+        
+
+
+        stranddf=self.generefdf[['Strand','gene_id']]
+        alloneclusterdf=alloneclusterdf.merge(stranddf,on='gene_id')
+
+
+
+
+
+
+        pool = multiprocessing.Pool(processes=self.nproc)
+        allsortls=[]
+
+        for i in range(0,len(alloneclusterdf)):
+            
+            geneID=alloneclusterdf['gene_id'][i]
+            genereads=fetchadata[geneID]
+            TSS_start=alloneclusterdf['TSS_start'][i]
+            TSS_end=alloneclusterdf['TSS_end'][i]
+            strand=alloneclusterdf['Strand'][i]
+            allsortls.append(pool.apply_async(self.window_sliding,(genereads,TSS_start,TSS_end,strand)))
+
+        pool.close()
+        pool.join()
+        results=[res.get() for res in allsortls]
+
+        allsortfddict={}
+        for geneid,resls in zip(alloneclusterdf['Unnamed: 0'],results):
+            allsortfddict[geneid]=resls  
+
+        
+        ctssOutPath=self.ctss_out_dir+'CTSS_foldchange.pkl'
+        with open(ctssOutPath,'wb') as f:
+            pickle.dump(allsortfddict,f)
+
+        return allsortfddict
+
+
+    def pickCTSS(self,ctssls):
+
+        keepCTSS=[]
+        for ele in ctssls:
+            if (ele[1]>self.minCTSSCount)&(ele[2]>self.minFC):
+                keepCTSS.append(ele)
+        return keepCTSS
+
+
+
+
+    def produce_CTSS_adata(self):
+        ctime=time.time()
+
+        readspath=self.count_out_dir+'fetch_reads.pkl'
+        with open(readspath,'rb') as f:
+            fetchadata=pickle.load(f)
+
+        allsortfddict=self._get_CTSS(fetchadata)
+        keepdict={}
+        for ctssid in allsortfddict.keys():
+            keepdict[ctssid]=self.pickCTSS(allsortfddict[ctssid])
+        
+        #print(keepdict)
+
+
+        #get the cellID meeting our requirement
+        cellIDdict={}
+        for i in keepdict.keys():
+            
+            for j in keepdict[i]:
+                geneid=i.split('*')[0]
+                newid=i+'#'+str(j[0])+'@'+str(j[1])+'$'+str(j[2])
+                cellIDls=[]
+                for ele in fetchadata[geneid]:
+                    if j[0]==ele[0]:
+                        cellIDls.append(ele[1])
+                cellIDdict[newid]=cellIDls
+
+        #print(len(cellIDdict))
+
+
+        #create a big matrix including cell ID
+        cellidls=list(cellIDdict.values())
+        cellidset = set([item for sublist in cellidls for item in sublist])
+        ctssfinaldf=pd.DataFrame(index=cellidset)
+
+
+
+        
+        for clusterID in cellIDdict.keys():
+            cellID,count=np.unique(cellIDdict[clusterID],return_counts=True)
+            CTSSdf=pd.DataFrame({'cell_id':cellID,clusterID:count})
+            CTSSdf.set_index('cell_id',inplace=True)
+            ctssfinaldf[clusterID]=ctssfinaldf.index.map(CTSSdf[clusterID])
+
+
+        ctssfinaldf.fillna(0,inplace=True)
+        ctssadata=ad.AnnData(ctssfinaldf)
+
+        ctssvardf=pd.DataFrame(ctssadata.var.copy())
+        ctssvardf.reset_index(inplace=True)
+        ctssvardf.columns=['clusterID']
+        ctssvardf['gene_id']=ctssvardf['clusterID'].str.split('*',expand=True)[0]
+        ctssvardf['CTSS']=ctssvardf['clusterID'].str.split('#',expand=True)[1].str.split('@',expand=True)[0]
+        ctssvardf['counts_dropped_UnencodedG']=ctssvardf['clusterID'].str.split('@',expand=True)[1].str.split('$',expand=True)[0]
+        ctssvardf['fold_change']=ctssvardf['clusterID'].str.split('$',expand=True)[1]
+
+
+        ctssvardf=ctssvardf.merge(self.generefdf,on='gene_id')
+        ctssvardf.set_index('clusterID',drop=True,inplace=True)
+        ctssadata.var=ctssvardf
+
+        ctss_output_h5ad=self.ctss_out_dir+'all_ctss.h5ad'
+        ctssadata.write(ctss_output_h5ad)
+
+
+        twoctssselect=ctssadata.var[ctssadata.var.duplicated('gene_id',keep=False)].index
+        twoctssadata=ctssadata[:,twoctssselect]
+
+        sc_output_h5ad=self.ctss_out_dir+'all_ctss_two.h5ad'
+        twoctssadata.write(sc_output_h5ad)
+
+        print('produce CTSS h5ad Time elapsed',int(time.time()-ctime),'seconds.')
+
+
+        return twoctssadata
+
+
+

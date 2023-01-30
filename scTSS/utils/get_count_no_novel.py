@@ -199,10 +199,13 @@ class get_old_TSS_count():
                 if len(select[select==label[i]])>=self.minCount:
                     singletranscriptdict[keyid]=(len(select[select==label[i]]),selectCB[select==label[i]])
 
-            if len(singletranscriptdict)>=2:
-                return singletranscriptdict
-            else:
-                return {}
+
+            # if len(singletranscriptdict)>=2:
+            #     return singletranscriptdict
+            # else:
+            #     return {}
+
+            return singletranscriptdict
             
         except ValueError:
             return {}
@@ -216,7 +219,6 @@ class get_old_TSS_count():
         pool = multiprocessing.Pool(processes=self.nproc)
         readinfodict=self._get_gene_reads()
         transcriptdictls=[]
-
         for geneID in readinfodict.keys():
             transcriptdictls.append(pool.apply_async(self.distribution,(geneID,readinfodict[geneID])))
         pool.close()
@@ -230,17 +232,41 @@ class get_old_TSS_count():
             transcriptdict.update(d)
 
 
-        
-
         print('do annotation',int(time.time()-start_time),'seconds.')
 
 
         #store reads fetched
-        outfilename=self.count_out_dir+'transcript_store.pkl'
+        outfilename=self.count_out_dir+'transcript_all.pkl'
         with open(outfilename,'wb') as f:
             pickle.dump(transcriptdict,f)
 
-        return transcriptdict
+        newlist=[(i.split('_')[0],list(transcriptdict.keys()).index(i)) for i in list(transcriptdict.keys())]
+        geneid=[i[0] for i in newlist]
+
+        keepls=[]
+        for ele in newlist:
+            if geneid.count(ele[0])>1:
+                keepls.append(ele)
+
+        keepindex=[i[1] for i in keepls]
+
+        finaldict={}
+        for index in keepindex:
+            finalkey=list(transcriptdict.keys())[index]
+            finalvalue=list(transcriptdict.values())[index]
+            finaldict[finalkey]=finalvalue
+
+
+        outfilename=self.count_out_dir+'transcript_two.pkl'
+        with open(outfilename,'wb') as f:
+            pickle.dump(finaldict,f)
+
+        
+
+
+        return finaldict
+
+
 
 
 
