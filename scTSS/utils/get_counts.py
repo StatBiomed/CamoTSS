@@ -514,7 +514,7 @@ class get_TSS_count():
 
 
 
-    def window_sliding(self,genereads,TSS_start,TSS_end):
+    def window_sliding(self,genereads,TSS_start,TSS_end,strand):
 
         leftIndex=0
 
@@ -532,6 +532,18 @@ class get_TSS_count():
             if (tss>=TSS_start)&(tss<=TSS_end):
                 promoterTSS.append(tss)
         TSS,count=np.unique(promoterTSS,return_counts=True)
+
+        nonzeroarray=np.asarray((TSS, count)).T
+
+
+        if strand=='+':
+            sortfinalarray=nonzeroarray[nonzeroarray[:, 0].argsort()]
+            TSS=sortfinalarray.T[0]
+            count=sortfinalarray.T[1]
+        elif strand=='-':
+            sortfinalarray=nonzeroarray[nonzeroarray[:, 0].argsort()[::-1]]
+            TSS=sortfinalarray.T[0]
+            count=sortfinalarray.T[1]
 
 
         #do something with sliding windows algorithm   
@@ -557,9 +569,11 @@ class get_TSS_count():
         alloneclusterdf['gene_id']=alloneclusterdf['Unnamed: 0'].str.split('*',expand=True)[0]
         alloneclusterdf['TSS_start']=alloneclusterdf['Unnamed: 0'].str.split('*',expand=True)[1].str.split('_',expand=True)[0].astype('float')
         alloneclusterdf['TSS_end']=alloneclusterdf['Unnamed: 0'].str.split('_',expand=True)[1].astype('float')
+
+        self.generefdf.reset_index(inplace=True)
         
 
-
+        print(self.generefdf)
         stranddf=self.generefdf[['Strand','gene_id']]
         alloneclusterdf=alloneclusterdf.merge(stranddf,on='gene_id')
 

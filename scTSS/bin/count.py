@@ -26,8 +26,8 @@ def main():
    
     group0=OptionGroup(parser,"Optional arguments")
 
-    group0.add_option("--minCount",type="int",dest="minCount",default=30,
-    help="Minimum counts for each transcript in all cells [default: 30]")
+    group0.add_option("--minCount",type="int",dest="minCount",default=50,
+    help="Minimum counts for each transcript in all cells [default: 50]")
     # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
     # help="No. of isoform keeping in for each gene [default: 2]")
     group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
@@ -42,8 +42,8 @@ def main():
     group0.add_option('--InnerDistance',type="float",dest='InnerDistance',default=100,
     help="The resolution of each cluster [default: 100]")
 
-    group0.add_option('--windowSize',type="float",dest='windowSize',default=20,
-    help="The width of sliding window [default: 20]")
+    group0.add_option('--windowSize',type="float",dest='windowSize',default=15,
+    help="The width of sliding window [default: 15]")
 
     group0.add_option('--minCTSSCount',type="float",dest='minCTSSCount',default=100,
     help="The minimum UMI counts for each CTSS [default: 100]")

@@ -60,12 +60,38 @@ You can check our paper to learn more detail.
 For multiple samples preprocessing
 ===========
 
-.. code-block:: bash
+For most public single cell data, we can obtain the whole annotation of cell type from different samples. 
+
+The sample ID information always show at the cell barcode for each cell.
+
+In order to fully use the annotation described above, we can run cellranger count for each sample independently. 
+
+Then manually add sample information to the cell barcode. We can implement it by using following script.
+
+.. code-block:: python
 
         import pysam
-        inbam=pysam.Samfile(
-
+        inputbamfile=$home+'/cellranger_out/outs/manual_filter/possorted_genome_bam_filterd.bam'
+        outputbamfile=$home+'/cellranger_out/outs/manual_filter/possorted_genome_bam_filterd_add_suffix.bam'
+        inputbam=pysam.Samfile(inputbamfile,'rb')
+        outputbam=pysam.Samfile(outputbamfile,'wb',template=inputbam)
+        for read in inputbam.fetch():
+                cb=read.get_tag('CB')
+                assert cb is not None
+                cbfix=cb.replace('-1',"")
+                cbfix=cbfix+'-sampleID'
+                read.set_tag('CB',cbfix)
+                outputbam.write(read)
+        inputbam.close()
+        outputbam.close()
         
+
+Then the bam file with changed cellbarcode can be merged with samtools merge
+
+.. code-block:: bash
+samtools merge $merged_bam -b $bamlist.fofn --write-index
+
+
 
 
 
