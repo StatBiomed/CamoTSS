@@ -89,7 +89,7 @@ Then manually add sample information to the cell barcode. We can implement it by
 Then the bam file with changed cellbarcode can be merged with samtools merge
 
 .. code-block:: bash
-samtools merge $merged_bam -b $bamlist.fofn --write-index
+        samtools merge $merged_bam -b $bamlist.fofn --write-index
 
 
 
