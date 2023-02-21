@@ -326,10 +326,14 @@ class get_TSS_count():
         loaded_model = pickle.load(open(pathstr, 'rb'))
         test_Y=loaded_model.predict(test_X.values)
 
-        #do filtering
+        #do filtering, the result of this step should be output as final h5ad file display at single cell level. 
         afterfiltereddf=fourfeaturedf[test_Y==1]
         afterfilter_output=self.count_out_dir+'afterfiltered.csv'
         afterfiltereddf.to_csv(afterfilter_output)
+
+
+
+
         print('after_filter_false_positive_TSS_afterfiltereddf : %i'%(len(afterfiltereddf)))
 
 
@@ -392,8 +396,11 @@ class get_TSS_count():
         for i in range(len(altTSSitemdict)):
             for j in range(temprefdf.shape[0]):
                 cluster_val=altTSSitemdict[i][0]
-                quanp=cluster_val[cluster_val<np.percentile(cluster_val,10)]
-                cost_mtx[i,j]=np.absolute(np.sum(quanp-temprefdf.iloc[j,5]))
+
+                #this cost matrix should be corrected
+                position,count=np.unique(cluster_val,return_counts=True)
+                mode_position=position[np.argmax(count)]
+                cost_mtx[i,j]=np.absolute(np.sum(mode_position-temprefdf.iloc[j,5]))
         row_ind, col_ind = linear_sum_assignment(cost_mtx)
         transcriptls=list(temprefdf.iloc[col_ind,:]['transcript_id'])
 
