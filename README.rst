@@ -19,6 +19,16 @@ Python environment.
 Quick start
 ===========
 
+run cellranger count
+===========
+scTSS require 5'scRNA-seq data (10x Genomics) with the length of reads 1 more than 100bp.
+
+That means the reads 1 should contain extra cDNA information except UMI and cell barcode. 
+
+To align the extra cDNA, '--chemistry SC5P-PE' should be set during running cellranger count. 
+
+ 
+
 scTSS-count
 ===========
 
@@ -54,10 +64,12 @@ Unannotation means that you can detect novel TSS. The distance between different
 
 Annotation means that you can detect TSS based on the annotation. The distance between different TSS may be narrow.
 
-You can check our paper to learn more detail. 
+You can check our paper to learn more detail.
+
+In addition, you can use '--mode Unannotation_addCTSS' to identify CTSS within each TSS cluster.  
 
 
-For multiple samples preprocessing
+Multiple samples preprocessing
 ===========
 
 For most public single cell data, we can obtain the whole annotation of cell type from different samples. 
@@ -94,6 +106,12 @@ Then the bam file with changed cellbarcode can be merged with samtools merge
 
 
 
+Alternative TSS or CTSS detecting
+===========
+
+To identify alternative TSS usage or alternative CTSS usage, Brie2 ((Huang & Sanguinetti, 2021) is recommend to be used. 
+
+For more information, please check https://brie.readthedocs.io/en/latest/ 
 
 
 

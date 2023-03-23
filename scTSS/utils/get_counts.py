@@ -328,49 +328,21 @@ class get_TSS_count():
 
         #do filtering, the result of this step should be output as final h5ad file display at single cell level. 
         afterfiltereddf=fourfeaturedf[test_Y==1]
-        afterfilter_output=self.count_out_dir+'afterfiltered.csv'
-        afterfiltereddf.to_csv(afterfilter_output)
+        afterfiltereddf.columns=['all_counts','std','summit_count','unencoded_G_percent','TSS.no','gene_id','summit_position']
+
+        # afterfilter_output=self.count_out_dir+'afterfiltered.csv'
+        # afterfiltereddf.to_csv(afterfilter_output)
 
 
-
-
-        print('after_filter_false_positive_TSS_afterfiltereddf : %i'%(len(afterfiltereddf)))
-
-
-        selectedf=afterfiltereddf[afterfiltereddf.duplicated(5,keep=False)] #select number of transcript is more than 2
-
-        twotranscriptpath=self.count_out_dir+'twotranscript.csv'
-        selectedf.to_csv(twotranscriptpath)
-
-        geneID=selectedf[5].unique()
-
-        #make sure the distance of cluster is more than user's defination distance 
-        keepdfls=[]
-        for i in geneID:
-            tempdf=selectedf[selectedf[5]==i]
-            
-            tempdf=tempdf.sort_values(0,ascending=False)
-            tempdf['diff']=tempdf[6].diff()
-            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]    #there has some problem
-            #keepdf=keepdf.iloc[:2,:]
-            keepdfls.append(keepdf) 
-
-        allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
-        tss_output=self.count_out_dir+'allkeep.csv'
-        allkeepdf.to_csv(tss_output)
-
-
-
-
-        allgeneID=allkeepdf[5].unique()
+        allgeneID=afterfiltereddf['gene_id'].unique()
         keepdict={}
         for i in allgeneID:
-            selectgeneiddf=allkeepdf[allkeepdf[5]==i]
-            twotranscriptls=[]
+            selectgeneiddf=afterfiltereddf[afterfiltereddf['gene_id']==i]
+            keeptranscriptls=[]
             for j in selectgeneiddf.index:
-                index=allkeepdf.loc[j][4]
-                twotranscriptls.append(altTSSdict[i][index])
-            keepdict[i]=twotranscriptls
+                index=afterfiltereddf.loc[j]['TSS.no']
+                keeptranscriptls.append(altTSSdict[i][index])
+            keepdict[i]=keeptranscriptls
 
 
 
@@ -504,11 +476,29 @@ class get_TSS_count():
         sc_output_h5ad=self.count_out_dir+'scTSS_count_all.h5ad'
         adata.write(sc_output_h5ad)
 
-        twoindexselect=adata.var[adata.var.duplicated('gene_id',keep=False)].index
-        twoadata=adata[:,twoindexselect]
+        #filter according to user' defined distance
+        newdf=adata.var.copy()
+        newdf.reset_index(inplace=True)
+        selectedf=newdf[newdf.duplicated('gene_id',keep=False)]  #get data frame which includes two transcript for one gene
+        geneID=selectedf['gene_id'].unique()
+
+        keepdfls=[]
+        for i in geneID:
+            tempdf=selectedf[selectedf['gene_id']==i]
+
+            tempdf=tempdf.sort_values('transcript_id',ascending=False)
+            tempdf['diff']=tempdf['TSS_start'].diff()
+            keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]    #want to get TSS whose cluster distance is more than user defined.
+            #keepdf=keepdf.iloc[:2,:]
+            keepdfls.append(keepdf) 
+
+
+        allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
+        finaltwodf=allkeepdf[allkeepdf.duplicated('gene_id',keep=False)] 
+        finaltwoadata=adata[:,adata.var.index.isin(finaltwodf['transcript_id'])]  
 
         sc_output_h5ad=self.count_out_dir+'scTSS_count_two.h5ad'
-        twoadata.write(sc_output_h5ad)
+        finaltwoadata.write(sc_output_h5ad)
 
 
         print('produce h5ad Time elapsed',int(time.time()-ctime),'seconds.')
