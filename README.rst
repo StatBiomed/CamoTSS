@@ -3,7 +3,7 @@ CamoTSS for alternative TSS analysis in single cells
 ============================================================
 |pypi| 
 
-.. |pypi| image:: [![PyPI version](https://badge.fury.io/py/CamoTSS.svg)](https://badge.fury.io/py/CamoTSS)
+.. |pypi| image:: https://badge.fury.io/py/CamoTSS.svg
        :target: https://pypi.org/project/CamoTSS/
 
 
