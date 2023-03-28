@@ -20,7 +20,7 @@ def main():
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
     parser.add_option('--refFasta','-r',dest='refFastq',default=None,help='The directory for reference fasta file') #what should be after $
-    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS cluster mode [Unannotation]. If you also want to detect CTSS within one cluster, you can use [Unannotation_addCTSS] mode')
+    parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS cluster mode [TC]. If you also want to detect CTSS within one cluster, you can use [CTSS] mode')
 
    
    
@@ -63,7 +63,7 @@ def main():
     
     #this means that if users do not input any argument, then direct produce help. then end.
     if len(sys.argv[1:]) == 0:
-        print('Welcome to CamoTSS lalala v%s!\n'%(__version__))
+        print('Welcome to CamoTSS v%s!\n'%(__version__))
         print("use -h or --help for help on argument.")
         sys.exit(1)
 
@@ -127,11 +127,11 @@ def main():
 
 
         
-    if options.mode == "Unannotation":
+    if options.mode == "TC":
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC)
         scadata=getTSScount.produce_sclevel()
 
-    elif options.mode=="Unannotation_addCTSS":
+    elif options.mode=="CTSS":
         getTSScount=get_TSS_count(generefpath,tssrefpath,bam_file,fastqFilePath,out_dir,cellBarcodePath,n_proc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC)
         scadata=getTSScount.produce_sclevel()
         twoctssadata=getTSScount.produce_CTSS_adata()

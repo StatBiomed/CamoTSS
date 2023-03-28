@@ -1,6 +1,8 @@
 ============================================================
 CamoTSS for alternative TSS analysis in single cells
 ============================================================
+https://img.shields.io/pypi/v/CamoTSS
+
 
 Installation
 ============
@@ -20,7 +22,7 @@ Quick start
 ===========
 
 run cellranger count
-===========
+====================
 CamoTSS require 5'scRNA-seq data (10x Genomics) with the length of reads 1 more than 100bp.
 
 That means the reads 1 should contain extra cDNA information except UMI and cell barcode. 
@@ -69,7 +71,7 @@ You can check our paper to learn more detail.
 
 
 Multiple samples preprocessing
-===========
+==============================
 
 For most public single cell data, we can obtain the whole annotation of cell type from different samples. 
 
@@ -106,7 +108,7 @@ Then the bam file with changed cellbarcode can be merged with samtools merge
 
 
 Alternative TSS or CTSS detecting
-===========
+=================================
 In CamoTSS, one of output files is Tobrie.h5ad  which can be as input to Brie. 
 
 To identify alternative TSS usage or alternative CTSS usage, Brie2 (Huang & Sanguinetti, 2021) is recommend to be used. 
