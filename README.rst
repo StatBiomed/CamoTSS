@@ -1,5 +1,5 @@
 ============================================================
-scTSS: Detection and couting alternative TSS in single cells
+CamoTSS for alternative TSS analysis in single cells
 ============================================================
 
 Installation
@@ -10,7 +10,7 @@ version by following command line
 
 .. code-block:: bash
 
-  pip install -U git+https://github.com/StatBiomed/scTSS
+  pip install -U git+https://github.com/StatBiomed/CamoTSS
 
 In either case, add ``--user`` if you don't have the write permission for your 
 Python environment.
@@ -21,7 +21,7 @@ Quick start
 
 run cellranger count
 ===========
-scTSS require 5'scRNA-seq data (10x Genomics) with the length of reads 1 more than 100bp.
+CamoTSS require 5'scRNA-seq data (10x Genomics) with the length of reads 1 more than 100bp.
 
 That means the reads 1 should contain extra cDNA information except UMI and cell barcode. 
 
@@ -29,13 +29,13 @@ To align the extra cDNA, '--chemistry SC5P-PE' should be set during running cell
 
  
 
-scTSS-count
+CamoTSS-count
 ===========
 
 **STEP1:   Processing**
 
 
-scTSS mainly deal with the output from cellranger (a common alignment tool for 10x data).
+CamoTSS mainly deal with the output from cellranger (a common alignment tool for 10x data).
 
 The preprocessing procedure based on the output file of cellranger. 
 
@@ -48,25 +48,24 @@ The preprocessing procedure based on the output file of cellranger.
     5. samtools view -b possorted_genome_bam_filterd.sam > possorted_genome_bam_filterd.bam
     6. samtools index possorted_genome_bam_filterd.bam possorted_genome_bam_filterd.bam.bai
  
-**STEP2:   Run scTSS-count**
+**STEP2:   Run CamoTSS-count**
 
 .. code-block:: bash
 
-        scTSS-count --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
+        CamoTSS-count --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
 
-Want to learn about more parameter, you can use ``scTSS-count --help`` to check. 
+Want to learn about more parameter, you can use ``CamoTSS-count --help`` to check. 
 
 You can find out the example file in the test folder. Please make sure you also have the same column name.
 
-Here, you can select one of the mode from annotation and unannotation. 
+Here, you can select one of the mode from "Unannotation" and "Unannotation_addCTSS". 
 
-Unannotation means that you can detect novel TSS. The distance between different TSS may be wide. 
+Unannotation means that you can detect novel TSS cluster. 
 
-Annotation means that you can detect TSS based on the annotation. The distance between different TSS may be narrow.
+Unannotation_addCTSS  means that you can detect CTSS within one cluster. 
 
 You can check our paper to learn more detail.
 
-In addition, you can use '--mode Unannotation_addCTSS' to identify CTSS within each TSS cluster.  
 
 
 Multiple samples preprocessing
@@ -109,7 +108,7 @@ Then the bam file with changed cellbarcode can be merged with samtools merge
 Alternative TSS or CTSS detecting
 ===========
 
-To identify alternative TSS usage or alternative CTSS usage, Brie2 ((Huang & Sanguinetti, 2021) is recommend to be used. 
+To identify alternative TSS usage or alternative CTSS usage, Brie2 (Huang & Sanguinetti, 2021) is recommend to be used. 
 
 For more information, please check https://brie.readthedocs.io/en/latest/ 
 
