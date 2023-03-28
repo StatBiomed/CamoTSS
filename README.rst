@@ -29,7 +29,7 @@ To align the extra cDNA, '--chemistry SC5P-PE' should be set during running cell
 
  
 
-CamoTSS-count
+CamoTSS
 ===========
 
 **STEP1:   Processing**
@@ -48,13 +48,13 @@ The preprocessing procedure based on the output file of cellranger.
     5. samtools view -b possorted_genome_bam_filterd.sam > possorted_genome_bam_filterd.bam
     6. samtools index possorted_genome_bam_filterd.bam possorted_genome_bam_filterd.bam.bai
  
-**STEP2:   Run CamoTSS-count**
+**STEP2:   Run CamoTSS**
 
 .. code-block:: bash
 
-        CamoTSS-count --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
+        CamoTSS --gtf $gtfFile --refFastq $fastFile --bam $possorted_genome_bam_filterd.bam -c $cluster_toscTSS.tsv  -o $output_fileFold --mode Unannotation
 
-Want to learn about more parameter, you can use ``CamoTSS-count --help`` to check. 
+Want to learn about more parameter, you can use ``CamoTSS --help`` to check. 
 
 You can find out the example file in the test folder. Please make sure you also have the same column name.
 
@@ -107,6 +107,7 @@ Then the bam file with changed cellbarcode can be merged with samtools merge
 
 Alternative TSS or CTSS detecting
 ===========
+In CamoTSS, one of output files is Tobrie.h5ad  which can be as input to Brie. 
 
 To identify alternative TSS usage or alternative CTSS usage, Brie2 (Huang & Sanguinetti, 2021) is recommend to be used. 
 

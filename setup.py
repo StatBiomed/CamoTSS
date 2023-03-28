@@ -9,6 +9,8 @@ from setuptools import setup, find_packages
 from codecs import open
 from os import path
 
+
+
 here = path.abspath(path.dirname(__file__))
 
 # Set __version__ for the project.
@@ -37,7 +39,7 @@ setup(
 
     # Author details
     author=['CamoTSS Team'],
-    author_email='',
+    author_email='ruiyan@connect.hku.hk',
 
     # Choose your license
     license='Apache-2.0',
@@ -51,7 +53,7 @@ setup(
 
     entry_points={
           'console_scripts': [
-            'CamoTSS = CamoTSS.bin.CamoTSS_main:main',
+            'CamoTSS = CamoTSS.bin.count:main',
             ],
           }, 
 

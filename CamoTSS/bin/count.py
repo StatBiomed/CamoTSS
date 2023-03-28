@@ -63,7 +63,7 @@ def main():
     
     #this means that if users do not input any argument, then direct produce help. then end.
     if len(sys.argv[1:]) == 0:
-        print('Welcome to CamoTSS-count v%s!\n'%(__version__))
+        print('Welcome to CamoTSS lalala v%s!\n'%(__version__))
         print("use -h or --help for help on argument.")
         sys.exit(1)
 
@@ -141,5 +141,5 @@ def main():
         print('Do not have this mode. Please check your spell!')
 
         run_time = time.time() - START_TIME
-        print("[scTSS-count] All done: %d min %.1f sec" %(int(run_time / 60), 
+        print("[CamoTSS] All done: %d min %.1f sec" %(int(run_time / 60), 
                                                   run_time % 60))
