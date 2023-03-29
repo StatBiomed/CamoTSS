@@ -1,7 +1,7 @@
 |PyPI| |Docs| |Build Status|
 
-.. |PyPI| image:: https://img.shields.io/pypi/v/CamoTSS.svg
-       :target: https://pypi.org/project/CamoTSS
+.. |PyPI| image:: https://badge.fury.io/py/CamoTSS.svg
+       :target: https://pypi.org/project/CamoTSS/
 .. |Docs| image:: https://readthedocs.org/projects/CamoTSS/badge/?version=latest
       :target: https://CamoTSS.readthedocs.io
 .. |Build Status| image:: https://travis-ci.org/huangyh09/brie.svg?branch=master
@@ -25,14 +25,16 @@ The input files of CamoTSS include alignment file (bam file), annotation file (g
 The output files of CamoTSS include cell by all TSSs matrix (h5ad), cell by two TSSs matrix (h5ad), cell by CTSS matrix (h5ad) and cell by CTSS matrix (h5ad). 
 
 CamoTSS identify TSS through the following steps.
-.. image:: https://github.com/StatBiomed/SpatialDM/blob/main/docs/.figs/AvsB-1.png?raw=true
-   :width: 900px
+.. image:: image/flow_chart.png
+   :width: 600
+   :alt: flow chart for CamoTSS
    :align: center
 
 
 Specificlly, a convolutional neural network was applied to filter false positive peaks.
-.. image:: https://github.com/StatBiomed/SpatialDM/blob/main/docs/.figs/AvsB-1.png?raw=true
-   :width: 900px
+.. image:: image/classifier.png
+   :width: 600
+   :alt: classifier
    :align: center
 
 
