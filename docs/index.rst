@@ -19,9 +19,9 @@ About CamoTSS
 
 CamoTSS can  precisely identify TSS and quantify its expression by leveraging the cDNA on read 1, which enables effective detection of alternative TSS usage.
 
-CamoTSS supports the analysis of alternative TSS at two levels, TSS cluster (TC mode) and CTSS (CTSS mode). 
-The input files of CamoTSS include alignment file (bam file), annotation file (gtf file), cell list file and reference genome file (fasta file). 
-The output files of CamoTSS include cell by all TSSs matrix (h5ad), cell by two TSSs matrix (h5ad), cell by CTSS matrix (h5ad) and cell by CTSS matrix (h5ad). 
+CamoTSS supports the analysis of alternative TSS at two levels, TSS cluster (**TC mode**) and CTSS (**CTSS mode**). 
+The input files of CamoTSS include alignment file (`bam file`), annotation file (`gtf file`), cell list file and reference genome file (`fasta file`). 
+The output files of CamoTSS include cell by all TSSs matrix (`h5ad`), cell by two TSSs matrix (`h5ad`), cell by CTSS matrix (`h5ad`) and cell by CTSS matrix (`h5ad`). 
 
 CamoTSS identify TSS through the following steps.
 
@@ -41,7 +41,7 @@ Specificlly, a convolutional neural network was applied to filter false positive
 
 
 
-It includes 3 steps to identify alternative TSS or CTSS usage: preprocessing, running CamoTSS and running Brie2.
+It includes 3 steps to identify alternative TSS or CTSS usage: preprocessing, running CamoTSS and running BRIE2.
 
 Please refer to our tutorial for details.
 

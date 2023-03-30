@@ -60,20 +60,36 @@ Alternative TSS or CTSS detecting
 
 To identify alternative TSS usage or alternative CTSS usage, Brie2 (Huang & Sanguinetti, 2021) is recommend to be used. 
 
-For more information, please check https://brie.readthedocs.io/en/latest/ 
+Here, we provide an example exploiting BRIE2 to detect alterntive TSS/CTSS usage. 
+
+You can check it in our manual_.
+
+.. _manual: https://camotss.readthedocs.io/en/latest/runBRIE.html  
 
 
 Detailed Manual
 ================
 
-The full manual is at , including:
+The full manual is here_, including:
+
+`Preprocess`_
+
+`Run CamoTSS`_
+
+`Detect alternative TSS/CTSS`_
+
+.. _Preprocess: https://camotss.readthedocs.io/en/latest/preprocess.html
+
+.. _Run CamoTSS: https://camotss.readthedocs.io/en/latest/run_CamoTSS.html
+
+.. _Detect alternative TSS/CTSS: https://camotss.readthedocs.io/en/latest/runBRIE.html
 
 
 
 Reference
 ===========
 
-
+Come soon
 
 
 
