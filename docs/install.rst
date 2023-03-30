@@ -17,3 +17,6 @@ development) version by the following command line:
 
 In either case, add --user if you don’t have the write permission for your Python environment.
 
+If you run into any issues or errors are raised during the installation process, feel free to contact us at GitHub_.
+
+.. _GitHub: https://github.com/StatBiomed/CamoTSS/issues

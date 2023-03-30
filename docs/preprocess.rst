@@ -21,10 +21,10 @@ Filtering UMI according to the specific criteria:
 
 .. code-block:: html
 
-* Have a MAPQ score of 255
-* Maps to exactly one gene
-* Overlaps an exon by at least 50% in a way consistent with annotated splice junctions and strand annotation. Records that align to exons will have an RE:A:E tag.
-* Remove any records with matching UMI and Barcode values that map to different genes.
+   * Have a MAPQ score of 255
+   * Maps to exactly one gene
+   * Overlaps an exon by at least 50% in a way consistent with annotated splice junctions and strand annotation. Records that align to exons will have an RE:A:E tag.
+   * Remove any records with matching UMI and Barcode values that map to different genes.
 
 
 For more information, you can check this material_ .

@@ -1,11 +1,10 @@
-|PyPI| |Docs| |Build Status|
+|PyPI| |Docs| 
 
 .. |PyPI| image:: https://badge.fury.io/py/CamoTSS.svg
        :target: https://pypi.org/project/CamoTSS/
-.. |Docs| image:: https://readthedocs.org/projects/CamoTSS/badge/?version=latest
-      :target: https://CamoTSS.readthedocs.io
-.. |Build Status| image:: https://travis-ci.org/huangyh09/brie.svg?branch=master
-      :target: https://travis-ci.org/huangyh09/brie
+.. |Docs| image:: https://readthedocs.org/projects/camotss/badge/?version=latest
+      :target: https://camotss.readthedocs.io/en/latest/?badge=latest
+
 
 
 
@@ -70,4 +69,4 @@ Please refer to our tutorial for details.
    preprocess
    run_CamoTSS
    runBRIE
-
+   release
