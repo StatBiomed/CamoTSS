@@ -53,11 +53,21 @@ Please refer to our tutorial for details.
 
 * `Run Brie2`_.
 
-.. _Preprocess for one sample and multiple samples: melanoma.ipynb
+.. _Preprocess for one sample and multiple samples: preprocess.rst
 
-.. _Run CamoTSS: differential_test_intestine.ipynb
+.. _Run CamoTSS: run_CamoTSS.rst
 
-.. _Run Brie2: differential_test_intestine.ipynb
+.. _Run Brie2: runBRIE.ipynb
 
 
-    
+.. toctree::
+   :caption: Main
+   :maxdepth: 1
+   :hidden:
+
+   index
+   install
+   preprocess
+   run_CamoTSS
+   runBRIE
+
