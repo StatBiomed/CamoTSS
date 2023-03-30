@@ -25,6 +25,7 @@ Download test file
 ===================
 
 You can download test file from onedrive_.
+
 .. _onedrive: https://connecthkuhk-my.sharepoint.com/:f:/g/personal/ruiyan_connect_hku_hk/Eqp1gYR5dlVIoWgH0udyJ5YB_9eVQ1e5WAxx3muAIeYdjw?e=SQ7fgb
 
 Here, you can download some large file include genome.fa, possorted_genome_bam_filtered.bam.
@@ -59,44 +60,44 @@ you are using):
 
 .. code-block:: html
 
-Usage: CamoTSS [options]
+   Usage: CamoTSS [options]
 
-Options:
-  -h, --help            show this help message and exit
-  -g GTF_FILE, --gtf=GTF_FILE
+   Options:
+        -h, --help            show this help message and exit
+        -g GTF_FILE, --gtf=GTF_FILE
                         The annotation gtf file for your analysing species.
-  -c CDRFILE, --cellbarcodeFile=CDRFILE
+        -c CDRFILE, --cellbarcodeFile=CDRFILE
                         The file include cell barcode which users want to keep
                         in the downstream analysis.
-  -b BAM_FILE, --bam=BAM_FILE
+        -b BAM_FILE, --bam=BAM_FILE
                         The bam file of aligned from Cellranger or other
                         single cell aligned software.
-  -o OUT_DIR, --outdir=OUT_DIR
+        -o OUT_DIR, --outdir=OUT_DIR
                         The directory for output [default : $bam_file]
-  -r REFFASTA, --refFasta=REFFASTA
+        -r REFFASTA, --refFasta=REFFASTA
                         The directory for reference genome fasta file
-  -m MODE, --mode=MODE  You can select run by finding novel TSS cluster mode
+        -m MODE, --mode=MODE  You can select run by finding novel TSS cluster mode
                         [TC]. If you also want to detect CTSS within one
                         cluster, you can use [CTSS] mode
 
-  Optional arguments:
-    --minCount=MINCOUNT
+   Optional arguments:
+        --minCount=MINCOUNT
                         Minimum UMI counts for TC in all cells [default: 50]
-    -p NPROC, --nproc=NPROC
+        -p NPROC, --nproc=NPROC
                         Number of subprocesses [default: 4]
-    --maxReadCount=MAXREADCOUNT
+        --maxReadCount=MAXREADCOUNT
                         For each gene, the maxmium read count kept for
                         clustering [default: 10000]
-    --clusterDistance=CLUSTERDISTANCE
+        --clusterDistance=CLUSTERDISTANCE
                         The minimum distance between two cluster transcription
                         start site [default: 300]
-    --InnerDistance=INNERDISTANCE
+        --InnerDistance=INNERDISTANCE
                         The resolution of each cluster [default: 100]
-    --windowSize=WINDOWSIZE
+        --windowSize=WINDOWSIZE
                         The width of sliding window [default: 15]
-    --minCTSSCount=MINCTSSCOUNT
+        --minCTSSCount=MINCTSSCOUNT
                         The minimum UMI counts for each CTSS [default: 100]
-    --minFC=MINFC       The minimum fold change for filtering CTSS [default:
+        --minFC=MINFC       The minimum fold change for filtering CTSS [default:
                         6]
 
 
