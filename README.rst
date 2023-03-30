@@ -78,6 +78,8 @@ The full manual is here_, including:
 
 `Detect alternative TSS/CTSS`_
 
+.. _here: https://camotss.readthedocs.io/en/latest/index.html
+
 .. _Preprocess: https://camotss.readthedocs.io/en/latest/preprocess.html
 
 .. _Run CamoTSS: https://camotss.readthedocs.io/en/latest/run_CamoTSS.html
@@ -89,7 +91,7 @@ The full manual is here_, including:
 Reference
 ===========
 
-Come soon
+Coming soon
 
 
 
