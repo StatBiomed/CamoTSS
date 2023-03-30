@@ -3,7 +3,6 @@ from ..version import __version__
 import sys
 from ..utils.build_ref import get_TSSref,get_generef,get_filter_TSS
 from ..utils.get_counts import get_TSS_count
-from ..utils.get_count_no_novel import get_old_TSS_count
 import pyranges as pr
 import os
 import pandas as pd
@@ -16,10 +15,10 @@ START_TIME = time.time()
 def main():
     parser = OptionParser()
     parser.add_option('--gtf','-g',dest='gtf_file',default=None,help='The annotation gtf file for your analysing species.')
-    parser.add_option('--cdrFile','-c',dest='cdrFile',default=None,help='The file include cell barcode which users want to keep in the downstream analysis.Actually, it can be the same file input in the scTSS-quant')
+    parser.add_option('--cellbarcodeFile','-c',dest='cdrFile',default=None,help='The file include cell barcode which users want to keep in the downstream analysis.')
     parser.add_option('--bam','-b',dest='bam_file',default=None,help='The bam file of aligned from Cellranger or other single cell aligned software.')
     parser.add_option('--outdir','-o',dest='out_dir',default=None,help='The directory for output [default : $bam_file]') #what should be after $
-    parser.add_option('--refFasta','-r',dest='refFastq',default=None,help='The directory for reference fasta file') #what should be after $
+    parser.add_option('--refFasta','-r',dest='refFasta',default=None,help='The directory for reference genome fasta file') #what should be after $
     parser.add_option('--mode','-m',dest='mode',default=None,help='You can select run by finding novel TSS cluster mode [TC]. If you also want to detect CTSS within one cluster, you can use [CTSS] mode')
 
    
@@ -27,14 +26,13 @@ def main():
     group0=OptionGroup(parser,"Optional arguments")
 
     group0.add_option("--minCount",type="int",dest="minCount",default=50,
-    help="Minimum counts for each transcript in all cells [default: 50]")
-    # group0.add_option("--isoformNumber",type="int",dest="isoformNumber",default=2,
-    # help="No. of isoform keeping in for each gene [default: 2]")
+    help="Minimum UMI counts for TC in all cells [default: 50]")
+
     group0.add_option('--nproc','-p',type="int",dest='nproc',default=4,
     help='Number of subprocesses [default: 4]')
 
     group0.add_option('--maxReadCount',type="int",dest='maxReadCount',default=10000,
-    help='For each gene, the maxmium read count kept for clustering[default: 10000]')
+    help='For each gene, the maxmium read count kept for clustering [default: 10000]')
     
     group0.add_option('--clusterDistance',type="float",dest='clusterDistance',default=300,
     help="The minimum distance between two cluster transcription start site [default: 300]")
@@ -58,7 +56,6 @@ def main():
 
     parser.add_option_group(group0)
     (options, args) = parser.parse_args()
-
 
     
     #this means that if users do not input any argument, then direct produce help. then end.
@@ -84,8 +81,8 @@ def main():
         print("Error: Need --cdrFile for cell barcode file.")
         sys.exit(1)
 
-    if options.refFastq is None:
-        print("Error: Need --refFasta for reference fastq file.")
+    if options.refFasta is None:
+        print("Error: Need --refFasta for reference fasta file.")
         sys.exit(1)
 
 
@@ -112,13 +109,12 @@ def main():
 
     bam_file=options.bam_file
     minCount=options.minCount
-    #isoformNumber=options.isoformNumber
     cellBarcodePath=options.cdrFile
     n_proc=options.nproc
     maxReadCount=options.maxReadCount
     clusterDistance=options.clusterDistance
     InnerDistance=options.InnerDistance
-    fastqFilePath=options.refFastq
+    fastqFilePath=options.refFasta
     windowSize=options.windowSize
     minCTSSCount=options.minCTSSCount
     minFC=options.minFC
@@ -136,10 +132,10 @@ def main():
         scadata=getTSScount.produce_sclevel()
         twoctssadata=getTSScount.produce_CTSS_adata()
 
-
     else:
         print('Do not have this mode. Please check your spell!')
-
         run_time = time.time() - START_TIME
         print("[CamoTSS] All done: %d min %.1f sec" %(int(run_time / 60), 
                                                   run_time % 60))
+
+

@@ -20,7 +20,7 @@ exec(open("./CamoTSS/version.py").read())
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
     
-reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib','anndata>=0.6',
+reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib','anndata>=0.6','pyranges>=0.0.115'
 'scanpy>=1.5','pysam>=0.15.2','brie>=2.2.0','pandas>=0.23.0','scikit-learn>=0.23','editdistance>=0.3.1']
 
 setup(
@@ -38,7 +38,7 @@ setup(
     url='https://github.com/StatBiomed/CamoTSS',
 
     # Author details
-    author=['CamoTSS Team'],
+    author=['Ruiyan Hou'],
     author_email='ruiyan@connect.hku.hk',
 
     # Choose your license
@@ -49,7 +49,13 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
+
+
+
+
     packages=find_packages(),
+
+    package_data={'CamoTSS': ['model/*.sav']},
 
     entry_points={
           'console_scripts': [

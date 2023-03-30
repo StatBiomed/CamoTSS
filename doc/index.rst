@@ -25,6 +25,7 @@ The input files of CamoTSS include alignment file (bam file), annotation file (g
 The output files of CamoTSS include cell by all TSSs matrix (h5ad), cell by two TSSs matrix (h5ad), cell by CTSS matrix (h5ad) and cell by CTSS matrix (h5ad). 
 
 CamoTSS identify TSS through the following steps.
+
 .. image:: image/flow_chart.png
    :width: 600
    :alt: flow chart for CamoTSS
@@ -32,6 +33,7 @@ CamoTSS identify TSS through the following steps.
 
 
 Specificlly, a convolutional neural network was applied to filter false positive peaks.
+
 .. image:: image/classifier.png
    :width: 600
    :alt: classifier

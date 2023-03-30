@@ -321,8 +321,17 @@ class get_TSS_count():
 
         print('one_gene_with_two_TSS_fourfeature : %i'%(len(fourfeaturedf)))
         test_X=fourfeaturedf.iloc[:,0:4]
+        print('hello')
 
-        pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])+'/test/logistic_4feature_model.sav'
+        print(os.path.abspath(__file__))
+
+        print(os.path.dirname(os.path.abspath(__file__)))
+
+        print(Path(os.path.dirname(os.path.abspath(__file__))))
+
+        print(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])
+
+        pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[0])+'/model/logistic_4feature_model.sav'
         loaded_model = pickle.load(open(pathstr, 'rb'))
         test_Y=loaded_model.predict(test_X.values)
 
@@ -491,6 +500,8 @@ class get_TSS_count():
             keepdf=tempdf[tempdf['diff'].isna()|tempdf['diff'].abs().ge(self.clusterDistance)]    #want to get TSS whose cluster distance is more than user defined.
             #keepdf=keepdf.iloc[:2,:]
             keepdfls.append(keepdf) 
+
+        print(keepdfls)
 
 
         allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
