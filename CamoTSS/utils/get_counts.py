@@ -321,15 +321,15 @@ class get_TSS_count():
 
         print('one_gene_with_two_TSS_fourfeature : %i'%(len(fourfeaturedf)))
         test_X=fourfeaturedf.iloc[:,0:4]
-        print('hello')
+        # print('hello')
 
-        print(os.path.abspath(__file__))
+        # print(os.path.abspath(__file__))
 
-        print(os.path.dirname(os.path.abspath(__file__)))
+        # print(os.path.dirname(os.path.abspath(__file__)))
 
-        print(Path(os.path.dirname(os.path.abspath(__file__))))
+        # print(Path(os.path.dirname(os.path.abspath(__file__))))
 
-        print(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])
+        # print(Path(os.path.dirname(os.path.abspath(__file__))).parents[1])
 
         pathstr=str(Path(os.path.dirname(os.path.abspath(__file__))).parents[0])+'/model/logistic_4feature_model.sav'
         loaded_model = pickle.load(open(pathstr, 'rb'))
