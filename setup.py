@@ -20,7 +20,7 @@ exec(open("./CamoTSS/version.py").read())
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
     
-reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib','anndata>=0.6','pyranges>=0.0.115'
+reqs = ['numpy>=1.9.0', 'scipy>=1.4.0', 'matplotlib','anndata>=0.6','pyranges>=0.0.115',
 'scanpy>=1.5','pysam>=0.15.2','brie>=2.2.0','pandas>=0.23.0','scikit-learn>=0.23','editdistance>=0.3.1']
 
 setup(
