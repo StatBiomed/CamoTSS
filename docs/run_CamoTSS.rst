@@ -13,20 +13,26 @@ The input files include:
 
 The output files include:
 
-* cell by all TSSs matrix (h5ad)
-* cell by two TSSs matrix (h5ad) 
-* cell by CTSS matrix (h5ad)
-* cell by CTSS matrix (h5ad) 
-* ref file (reference gene and TSS csv)
+* fetch_reads.pkl :A dictionary whose key is the gene id, the value is the reads information of this gene, including the position 0 of reads, cellbarcodes and cigar string, such as (805735, ‘CATGACATCTCAACTT-1’, ‘14S49M’).
+* before_cluster_peak.pkl :A dictionary file whose key is gene id, the value is reads information of this gene including three numpy array. The first is  all the coordination of position 0 of reads. The second are all cell-barcodes of reads. The third are all cigar string of reads.  
+* fourFeature.csv : A dataframe includes 8 columns: cluster_id; UMI_count of cluster; SD of cluster; summit count of cluster;the percentage of Unencoded G percentage; the order of TSS; gene id; summit position. 
+* afterfiltered.csv : A dataframe have the same columns name as the fourFeature.csv. This file includes peaks filtered by classifier.
+* keepdict.pkl :  A dictionary which includes details of peaks in afterfiltered.csv. 
+* scTSS_count_all.h5ad: An anndata whose X is cell by TSS matrix. This file contained all TSS detected by CamoTSS. 
+* scTSS_count_two.h5ad: An anndata whose X is cell by TSS matrix. This file exclusively includes genes that possess two or more TSSs. 
+* CTSS_foldchange.pkl : A dictionary whose keys are peaks obtained at the first step and values are all CTSSs within this cluster and the related count and fold change. 
+* all_ctss.h5ad : An anndata whose X is cell by CTSS matrix. This file contained all CTSS detected by CamoTSS. 
+* all_ctss_two.h5ad : An anndata whose X is cell by CTSS matrix. This file contained TSS which have two or more CTSS.
+
 
 Here is a quick test file. You can check it.
   
 Download test file
 ===================
 
-You can download test file from onedrive_.
+You can download test file from figshare_.
 
-.. _onedrive: https://connecthkuhk-my.sharepoint.com/:f:/g/personal/ruiyan_connect_hku_hk/Eqp1gYR5dlVIoWgH0udyJ5YB_9eVQ1e5WAxx3muAIeYdjw?e=SQ7fgb
+.. _figshare: https://figshare.com/articles/dataset/CamoTSS_test_data/22641031
 
 Here, you can download some large file include genome.fa, possorted_genome_bam_filtered.bam.
 
@@ -35,9 +41,28 @@ Alternatively, you can also download the reference genome fasta file from Ensemb
 Run CamoTSS
 =============
 
-Here are two modes in CamoTSS : **TC** and **CTSS**.
+Here are three modes in CamoTSS : **TC** , **CTSS** and **TC+CTSS**.
 
-You can run CamoTSS by using test file according to the following code.
+* TC : Just detect TSS cluster.  
+* CTSS : Just detect CTSS within one cluster. But you should have the output from TC as the input to CTSS. The aim to add this mode is to prevent to rerun CamoTSS when user want to analysis CTSS.
+* TC+CTSS : Directly to detect TSS cluster and CTSS within one TSS cluster. 
+
+
+
+You can run CamoTSS by using test file according to the following code to run TC+CTSS mode.
+
+.. code-block:: bash
+
+   #!/bin/bash
+   gtfFile= $CamoTSS/test/Homo_sapiens.GRCh38.105.chr_test.gtf
+   fastaFile = $download/genome.fa
+   bamFile= $download/possorted_genome_bam_filtered.bam
+   cellbarcodeFile=$CamoTSS/test/cellbarcode_to_CamoTSS
+
+   CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC+CTSS
+
+
+You can run CamoTSS by using test file according to the following code to run TC mode. 
 
 .. code-block:: bash
 
@@ -48,6 +73,20 @@ You can run CamoTSS by using test file according to the following code.
    cellbarcodeFile=$CamoTSS/test/cellbarcode_to_CamoTSS
 
    CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC
+
+
+You can run CamoTSS by using test file according to the following code to run CTSS mode. 
+
+.. code-block:: bash
+
+   #!/bin/bash 
+   #note: the output file path should be the parent path of CamoTSS.
+   outputfile=CamoTSS_out 
+
+   CamoTSS -m CTSS -o $outputfile
+
+
+
 
 
 Options
@@ -63,7 +102,7 @@ you are using):
    Usage: CamoTSS [options]
 
    Options:
-        -h, --help            show this help message and exit
+        -h, --help      show this help message and exit
         -g GTF_FILE, --gtf=GTF_FILE
                         The annotation gtf file for your analysing species.
         -c CDRFILE, --cellbarcodeFile=CDRFILE
@@ -76,9 +115,12 @@ you are using):
                         The directory for output [default : $bam_file]
         -r REFFASTA, --refFasta=REFFASTA
                         The directory for reference genome fasta file
-        -m MODE, --mode=MODE  You can select run by finding novel TSS cluster mode
-                        [TC]. If you also want to detect CTSS within one
-                        cluster, you can use [CTSS] mode
+        -m MODE, --mode=MODE  You can select run by finding novel TSS cluster and
+                        CTSS within one cluster [TC+CTSS].
+                        If you just want to detect TSS cluster, you can use
+                        [TC] mode. If you just want to detect CTSS, you can
+                        use [CTSS] mode which is based on the output of [TC
+                        mode]
 
    Optional arguments:
         --minCount=MINCOUNT
@@ -95,9 +137,12 @@ you are using):
                         The resolution of each cluster [default: 100]
         --windowSize=WINDOWSIZE
                         The width of sliding window [default: 15]
+
+  Optional arguments:
         --minCTSSCount=MINCTSSCOUNT
                         The minimum UMI counts for each CTSS [default: 100]
         --minFC=MINFC       The minimum fold change for filtering CTSS [default:
                         6]
+
 
 

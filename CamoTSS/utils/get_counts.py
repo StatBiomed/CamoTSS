@@ -15,8 +15,8 @@ import statistics
 import editdistance
 import warnings
 from pathlib import Path
-import sys
-from brie.utils import fetch_reads
+from .toolbox import check_pysam_chrom,fetch_reads
+
 
 
 
@@ -24,53 +24,6 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 warnings.filterwarnings("ignore", category=Warning)
 
 
-
-
-
-
-
-global CACHE_CHROM
-global CACHE_SAMFILE
-CACHE_CHROM = None
-CACHE_SAMFILE = None
-
-def check_pysam_chrom(samFile,chrom=None):
-    """
-    check samFile is a file name or a pysam object, and if chrom format.
-    """
-    global CACHE_CHROM
-    global CACHE_SAMFILE
-
-    if CACHE_CHROM is not None:
-        if (samFile==CACHE_SAMFILE) and (chrom==CACHE_CHROM):
-            return CACHE_SAMFILE,CACHE_CHROM
-
-    
-    if type(samFile)==str or type(samFile)==np.str_:
-        ftype=samFile.split(".")[-1]
-        if ftype != "bam" and ftype!="sam" and ftype!="cram":
-            print("Error: file type need suffix of bam, sam or cram")
-            sys.exit(1)
-        if ftype == "cram":
-            samFile=pysam.AlignmentFile(samFile,'rc')
-        elif ftype=="bam":
-            samFile=pysam.AlignmentFile(samFile,'rb')
-        else:
-            samFile=pysam.AlignmentFile(samFile,'r')
-
-    if chrom is not None:
-        if chrom not in samFile.references:
-            if chrom.startswith("chr"):
-                chrom=chrom.split('chr')[1]
-            else:
-                chrom="chr"+chrom
-        if chrom not in samFile.references:
-            print("Can't find reference %s in samFile"%chrom)
-            return samFile,None
-
-    CACHE_CHROM=chrom
-    CACHE_SAMFILE=samFile
-    return samFile,chrom
 
 
 
@@ -90,13 +43,12 @@ class get_TSS_count():
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
         self.bamfilePath=bamfilePath
+        self.outdir=outdir
         self.count_out_dir=str(outdir)+'/count/'
         if not os.path.exists(self.count_out_dir):
             os.mkdir(self.count_out_dir)
 
-        self.ctss_out_dir=str(outdir)+'/CTSS/'
-        if not os.path.exists(self.ctss_out_dir):
-            os.mkdir(self.ctss_out_dir)
+
 
 
         self.minCount=minCount
@@ -113,7 +65,7 @@ class get_TSS_count():
         
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
-        #fetch reads1 in gene 
+        #fetch reads1 in gene ; In this step, we remove the umi duplicates. 
         samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
@@ -272,9 +224,9 @@ class get_TSS_count():
             altTSSdict[geneidSec]=reslsSec
         altTSSdict={k: v for k, v in altTSSdict.items() if v}
 
-        # tss_output=self.count_out_dir+'gene_with_onecluster.pkl'
-        # with open(tss_output,'wb') as f:
-        #     pickle.dump(altTSSdict,f)
+        tss_output=self.count_out_dir+'before_cluster_peak.pkl'
+        with open(tss_output,'wb') as f:
+            pickle.dump(altTSSdict,f)
 
         print('do clustering Time elapsed',int(time.time()-start_time),'seconds.')
 
@@ -316,6 +268,7 @@ class get_TSS_count():
 
         
         fourfeaturedf=pd.DataFrame(clusterdict).T 
+        fourfeaturedf.columns=['UMI_count','SD','summit_UMI_count','unencoded_G_percent','NO.TSS','gene_id','summit_position']
         fourfeature_output=self.count_out_dir+'fourFeature.csv'
         fourfeaturedf.to_csv(fourfeature_output)
 
@@ -337,10 +290,10 @@ class get_TSS_count():
 
         #do filtering, the result of this step should be output as final h5ad file display at single cell level. 
         afterfiltereddf=fourfeaturedf[test_Y==1]
-        afterfiltereddf.columns=['all_counts','std','summit_count','unencoded_G_percent','TSS.no','gene_id','summit_position']
+        afterfiltereddf.columns=['UMI_count','SD','summit_UMI_count','unencoded_G_percent','NO.TSS','gene_id','summit_position']
 
-        # afterfilter_output=self.count_out_dir+'afterfiltered.csv'
-        # afterfiltereddf.to_csv(afterfilter_output)
+        afterfilter_output=self.count_out_dir+'afterfiltered.csv'
+        afterfiltereddf.to_csv(afterfilter_output)
 
 
         allgeneID=afterfiltereddf['gene_id'].unique()
@@ -349,7 +302,7 @@ class get_TSS_count():
             selectgeneiddf=afterfiltereddf[afterfiltereddf['gene_id']==i]
             keeptranscriptls=[]
             for j in selectgeneiddf.index:
-                index=afterfiltereddf.loc[j]['TSS.no']
+                index=afterfiltereddf.loc[j]['NO.TSS']
                 keeptranscriptls.append(altTSSdict[i][index])
             keepdict[i]=keeptranscriptls
 
@@ -459,7 +412,7 @@ class get_TSS_count():
             cellID=np.unique(extendls[i][1][1])
             cellIDls.append(list(cellID))
         cellIDset = set([item for sublist in cellIDls for item in sublist])
-        finaldf=pd.DataFrame(index=cellIDset)
+        finaldf=pd.DataFrame(index=list(cellIDset))
 
 
 
@@ -501,7 +454,7 @@ class get_TSS_count():
             #keepdf=keepdf.iloc[:2,:]
             keepdfls.append(keepdf) 
 
-        print(keepdfls)
+        #print(keepdfls)
 
 
         allkeepdf=reduce(lambda x,y:pd.concat([x,y]),keepdfls)
@@ -557,6 +510,7 @@ class get_TSS_count():
         #do something with sliding windows algorithm   
         storels=[]
         for i in range(len(TSS) - self.windowSize + 1):
+            #print(i)
             onewindow=TSS[i: i + self.windowSize]
             correspondingcount=count[i: i + self.windowSize]
             middlecount=correspondingcount[leftIndex]
@@ -581,34 +535,30 @@ class get_TSS_count():
         self.generefdf.reset_index(inplace=True)
         
 
-        print(self.generefdf)
+        #print(self.generefdf)
         stranddf=self.generefdf[['Strand','gene_id']]
         alloneclusterdf=alloneclusterdf.merge(stranddf,on='gene_id')
 
 
 
 
+        start_time=time.time()
 
-
-        pool = multiprocessing.Pool(processes=self.nproc)
-        allsortls=[]
+        allsortfddict={}
 
         for i in range(0,len(alloneclusterdf)):
-            
             geneID=alloneclusterdf['gene_id'][i]
-            genereads=fetchadata[geneID]
+            # print(geneID)
+            genereads=self.fetchadata[geneID]
+            clusterID=alloneclusterdf['Unnamed: 0'][i]
             TSS_start=alloneclusterdf['TSS_start'][i]
             TSS_end=alloneclusterdf['TSS_end'][i]
             strand=alloneclusterdf['Strand'][i]
-            allsortls.append(pool.apply_async(self.window_sliding,(genereads,TSS_start,TSS_end,strand)))
+            windowreturn=self.window_sliding(genereads,TSS_start,TSS_end,strand)
+            allsortfddict[clusterID]=windowreturn
 
-        pool.close()
-        pool.join()
-        results=[res.get() for res in allsortls]
 
-        allsortfddict={}
-        for geneid,resls in zip(alloneclusterdf['Unnamed: 0'],results):
-            allsortfddict[geneid]=resls  
+        print('window sliding Time elapsed',int(time.time()-start_time),'seconds.')
 
         
         ctssOutPath=self.ctss_out_dir+'CTSS_foldchange.pkl'
@@ -633,6 +583,16 @@ class get_TSS_count():
 
     def produce_CTSS_adata(self):
         ctime=time.time()
+
+
+        self.ctss_out_dir=str(self.outdir)+'/CTSS/'
+        if not os.path.exists(self.ctss_out_dir):
+            os.mkdir(self.ctss_out_dir)
+
+
+
+
+
 
         readspath=self.count_out_dir+'fetch_reads.pkl'
         with open(readspath,'rb') as f:
@@ -678,6 +638,7 @@ class get_TSS_count():
 
 
         ctssfinaldf.fillna(0,inplace=True)
+        #print(ctssfinaldf)
         ctssadata=ad.AnnData(ctssfinaldf)
 
         ctssvardf=pd.DataFrame(ctssadata.var.copy())

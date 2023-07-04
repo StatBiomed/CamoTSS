@@ -40,7 +40,17 @@ Alternatively, you can also download the reference genome fasta file from Ensemb
 Run CamoTSS 
 =============
 
-Here are two modes in CamoTSS : **TC** and **CTSS**. 
+Here are two modes in CamoTSS : **TC+CTSS** , **TC** and **CTSS**.
+
+When you run **TC+CTSS** mode, you will get TC result and then get the CTSS result based on the TC.
+
+When you run **TC** mode, you will only get the TC result.
+
+The **TC+CTSS** and **TC** mode have the same required files.
+
+The --outdir is the only required parameter for **CTSS** mode. But the outdir should include output of TC.  
+
+If you want to run **CTSS** mode, you must based on the output of TC.
 
 You can run CamoTSS by using test file according to the following code.
 
@@ -52,7 +62,7 @@ You can run CamoTSS by using test file according to the following code.
    bamFile= $download/possorted_genome_bam_filtered.bam
    cellbarcodeFile=$CamoTSS/test/cellbarcode_to_CamoTSS
 
-   CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC
+   CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC+CTSS
 
 
 Alternative TSS or CTSS detecting
