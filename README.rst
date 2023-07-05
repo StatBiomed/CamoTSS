@@ -54,9 +54,9 @@ If you want to run **CTSS** mode, you must based on the output of TC.
 
 You can run CamoTSS **TC+CTSS** mode by using test file according to the following code.
 
-For the remaining modes, you can check our manual_.
+For the remaining modes, you can check this document.
 
-.. _manual: https://camotss.readthedocs.io/en/latest/run_CamoTSS.html
+.. _document: https://camotss.readthedocs.io/en/latest/run_CamoTSS.html
 
 .. code-block:: bash
 
