@@ -549,7 +549,7 @@ class get_TSS_count():
         for i in range(0,len(alloneclusterdf)):
             geneID=alloneclusterdf['gene_id'][i]
             # print(geneID)
-            genereads=self.fetchadata[geneID]
+            genereads=fetchadata[geneID]
             clusterID=alloneclusterdf['Unnamed: 0'][i]
             TSS_start=alloneclusterdf['TSS_start'][i]
             TSS_end=alloneclusterdf['TSS_end'][i]
@@ -624,7 +624,7 @@ class get_TSS_count():
 
         #create a big matrix including cell ID
         cellidls=list(cellIDdict.values())
-        cellidset = set([item for sublist in cellidls for item in sublist])
+        cellidset = list(set([item for sublist in cellidls for item in sublist]))
         ctssfinaldf=pd.DataFrame(index=cellidset)
 
 

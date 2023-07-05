@@ -54,10 +54,10 @@ You can run CamoTSS by using test file according to the following code to run TC
 .. code-block:: bash
 
    #!/bin/bash
-   gtfFile= $CamoTSS/test/Homo_sapiens.GRCh38.105.chr_test.gtf
+   gtfFile= $download/Homo_sapiens.GRCh38.105.chr_test.gtf
    fastaFile = $download/genome.fa
    bamFile= $download/possorted_genome_bam_filtered.bam
-   cellbarcodeFile=$CamoTSS/test/cellbarcode_to_CamoTSS
+   cellbarcodeFile=$download/cellbarcode_to_CamoTSS
 
    CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC+CTSS
 
@@ -67,10 +67,10 @@ You can run CamoTSS by using test file according to the following code to run TC
 .. code-block:: bash
 
    #!/bin/bash
-   gtfFile= $CamoTSS/test/Homo_sapiens.GRCh38.105.chr_test.gtf
+   gtfFile= $download/Homo_sapiens.GRCh38.105.chr_test.gtf
    fastaFile = $download/genome.fa
    bamFile= $download/possorted_genome_bam_filtered.bam
-   cellbarcodeFile=$CamoTSS/test/cellbarcode_to_CamoTSS
+   cellbarcodeFile=$download/cellbarcode_to_CamoTSS
 
    CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC
 
