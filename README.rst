@@ -40,7 +40,7 @@ Alternatively, you can also download the reference genome fasta file from Ensemb
 Run CamoTSS 
 =============
 
-Here are two modes in CamoTSS : **TC+CTSS** , **TC** and **CTSS**.
+Here are three modes in CamoTSS : **TC+CTSS** , **TC** and **CTSS**.
 
 When you run **TC+CTSS** mode, you will get TC result and then get the CTSS result based on the TC.
 
@@ -52,7 +52,11 @@ The --outdir is the only required parameter for **CTSS** mode. But the outdir sh
 
 If you want to run **CTSS** mode, you must based on the output of TC.
 
-You can run CamoTSS by using test file according to the following code.
+You can run CamoTSS **TC+CTSS** mode by using test file according to the following code.
+
+For the remaining modes, you can check our manual_.
+
+.. _manual: https://camotss.readthedocs.io/en/latest/run_CamoTSS.html
 
 .. code-block:: bash
 
@@ -101,7 +105,7 @@ The full manual is here_, including:
 Reference
 ===========
 
-Coming soon
+Hou, R., Hon, C. C., & Huang, Y. (2023). CamoTSS: analysis of alternative transcription start sites for cellular phenotypes and regulatory patterns from 5'scRNA-seq data. bioRxiv, 2023-04.
 
 
 
