@@ -125,6 +125,8 @@ class get_TSS_count():
         pool.join()
         results=[res.get() for res in results]
 
+        print('Hello, we finished to get the reads')
+
         for geneid,resls in zip(self.generefdf.index,results):
             readinfodict[geneid]=resls  
 
