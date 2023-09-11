@@ -65,45 +65,32 @@ class get_TSS_count():
         
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
-        #fetch reads1 in gene ; In this step, we remove the umi duplicates. 
         samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
-        reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
-        reads1_umi = reads["reads1"]
-
-
-
-        #select according to GX tag and CB (filter according to user owned cell)
-        reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
-        reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
-
-        #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
 
-
-
-        #filter according to the cateria of SCAFE
-        if self.generefdf.loc[geneid]['Strand']=='+':
-            reads1_umi=[r for r in reads1_umi if r.is_reverse==False]
-            reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
-            reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
-            reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
-        
-        elif self.generefdf.loc[geneid]['Strand']=='-':
-            reads1_umi=[r for r in reads1_umi if r.is_reverse==True]
-            reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[-13:-8],'CCCAT')<=4]
-            reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
-            reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==0)&(r.cigartuples[0][1]>5)&(r.cigartuples[1][0]==4)&(r.cigartuples[1][1]>6)&(r.cigartuples[1][1]<20)]
-
-
-
-        #store start of reads and CB 
         reads_info=[]
-        reads_info=[(r.positions[0],r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
-        #,r.query_sequence[:]
-        
+        for read in samFile.fetch(_chrom, self.generefdf.loc[geneid]['Start'], self.generefdf.loc[geneid]['End']):
+            try:
+    
+                if (read.is_read1==True)&(read.get_tag('GX')==geneid)&(read.get_tag('CB') in self.cellBarcode) \
+                &(editdistance.eval(fastqFile.fetch(start=read.reference_start-14, end=read.reference_start-1, region='chr1'),'TTTCTTATATGGG') >3):
+                    #print(read)
+                    
+                    #filter according to the cateria of SCAFE
+                    if (self.generefdf.loc[geneid]['Strand']=='+')&(read.is_reverse==False):
 
+                        if (editdistance.eval(read.query_sequence[9:14],'ATGGG')<=4)&(len(read.cigartuples)>=2)&(read.cigartuples[0][0]==4)&(read.cigartuples[0][1]>6)&(read.cigartuples[0][1]<20)&(read.cigartuples[1][0]==0)&(read.cigartuples[1][1]>5):
+                            reads_info.append((read.positions[0],read.get_tag('CB'),read.cigarstring))
+
+                    elif (self.generefdf.loc[geneid]['Strand']=='-')&(read.is_reverse==True):
+                        if (editdistance.eval(read.query_sequence[-13:-8],'CCCAT')<=4)&(len(read.cigartuples)>=2)&(read.cigartuples[0][0]==0)&(read.cigartuples[0][1]>5)&(read.cigartuples[1][0]==4)&(read.cigartuples[1][1]>6)&(read.cigartuples[1][1]<20):
+                            reads_info.append((read.positions[0],read.get_tag('CB'),read.cigarstring))
+
+
+            except: reads_info=[]
         return reads_info
+    
+
     
 
         
