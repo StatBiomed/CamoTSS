@@ -32,7 +32,7 @@ Download test file
 
 You can download test file from figshare_.
 
-.. _figshare: https://figshare.com/articles/dataset/CamoTSS_test_data/22641031
+.. _figshare: https://figshare.com/projects/CamoTSS/184603
 
 Here, you can download some large file include genome.fa, possorted_genome_bam_filtered.bam.
 
