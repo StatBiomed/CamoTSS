@@ -106,8 +106,7 @@ The full manual is here_, including:
 Reference
 ===========
 
-Hou, R., Hon, C. C., & Huang, Y. (2023). CamoTSS: analysis of alternative transcription start sites for cellular phenotypes and regulatory patterns from 5'scRNA-seq data. bioRxiv, 2023-04.
-
+Hou, R., Hon, CC. & Huang, Y. CamoTSS: analysis of alternative transcription start sites for cellular phenotypes and regulatory patterns from 5' scRNA-seq data. Nat Commun 14, 7240 (2023). https://doi.org/10.1038/s41467-023-42636-1
 
 
 
