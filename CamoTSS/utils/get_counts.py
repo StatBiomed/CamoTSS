@@ -77,7 +77,10 @@ class get_TSS_count():
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
-        reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+        if generefdf.loc[geneid]['Strand']=='+':
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+        elif generefdf.loc[geneid]['Strand']=='-':
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_end, end=r.reference_end+13, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'CCCATATAAGAAA') >3 ]
 
 
         #filter according to the cateria of SCAFE
