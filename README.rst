@@ -10,6 +10,14 @@ CamoTSS for alternative TSS analysis in single cells
       :target: https://zenodo.org/badge/latestdoi/497821671
 
 
+Note
+============
+Hi there, my github account did not notify me when there are issue. 
+So if you are in a hurry, you can email me. ruiyan@connect.hku.hk.
+I check email every day.  
+
+
+
 Installation
 ============
 
