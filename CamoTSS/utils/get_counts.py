@@ -82,24 +82,23 @@ class get_TSS_count():
         elif generefdf.loc[geneid]['Strand']=='-':
             reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_end, end=r.reference_end+13, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'CCCATATAAGAAA') >3 ]
 
-
+        reads_info=[]
         #filter according to the cateria of SCAFE
         if self.generefdf.loc[geneid]['Strand']=='+':
             reads1_umi=[r for r in reads1_umi if r.is_reverse==False]
             reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
             reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
+            reads_info=[(r.reference_start,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
         
         elif self.generefdf.loc[geneid]['Strand']=='-':
             reads1_umi=[r for r in reads1_umi if r.is_reverse==True]
             reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[-13:-8],'CCCAT')<=4]
             reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==0)&(r.cigartuples[0][1]>5)&(r.cigartuples[1][0]==4)&(r.cigartuples[1][1]>6)&(r.cigartuples[1][1]<20)]
+            reads_info=[(r.reference_end,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
 
 
-        #store start of reads and CB 
-        reads_info=[]
-        reads_info=[(r.positions[0],r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
         
         return reads_info
     
@@ -111,15 +110,30 @@ class get_TSS_count():
 
         pool = multiprocessing.Pool(processes=self.nproc)
 
-        self.generefdf.set_index('gene_id',inplace=True)
+
         bamfilePath=self.bamfilePath
         fastqFilePath=self.fastqFilePath
+
+
+        getreadsFile=pysam.AlignmentFile(bamfilePath,'rb')
+
+        geneidls=[]
+        for read in getreadsFile.fetch(until_eof = True):
+            geneid=read.get_tag('GX')
+            geneidls.append(geneid)
+        geneiddf=pd.DataFrame(geneidls,columns=['gene_id'])
+        geneid_uniqdf=geneiddf.drop_duplicates('gene_id')
+
+        mergedf=geneid_uniqdf.merge(self.generefdf,on='gene_id')
+        mergedf.set_index('gene_id',inplace=True)
+
+
 
         readinfodict={}
         results=[]
 
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
-        for i in self.generefdf.index:
+        for i in mergedf.index:
             results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i)))
         pool.close()
         pool.join()
@@ -127,7 +141,7 @@ class get_TSS_count():
 
         print('Hello, we finished to get the reads')
 
-        for geneid,resls in zip(self.generefdf.index,results):
+        for geneid,resls in zip(mergedf.index,results):
             readinfodict[geneid]=resls  
 
 
