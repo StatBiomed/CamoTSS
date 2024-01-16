@@ -24,6 +24,7 @@ def get_TSSref(grdf,out_dir):
 def get_generef(grdf,tssdf,out_dir):
     genedf=grdf[grdf['Feature']=='gene']
     genedf=genedf[['Chromosome','Feature','Start','End','Strand','gene_id','gene_name']]
+
     genedf['Chromosome']=genedf['Chromosome'].str.split('chr',expand=True)[1]
     genedf=genedf[genedf['gene_id'].isin(pd.unique(tssdf['gene_id']))]
     genedf.dropna(subset=['Chromosome'],axis=0,inplace=True)

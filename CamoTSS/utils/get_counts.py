@@ -40,7 +40,7 @@ class get_TSS_count():
 
     def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
-        self.generefdf.set_index('gene_id',inplace=True)
+        #self.generefdf.set_index('gene_id',inplace=True)
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
         self.bamfilePath=bamfilePath
@@ -65,41 +65,56 @@ class get_TSS_count():
 
         
 
-    def _getreads(self,bamfilePath,fastqFilePath,geneid):
+    def _getreads(self,bamfilePath,fastqFilePath,geneid,mergedf):
         #print(self.generefdf)
         #fetch reads1 in gene 
-        samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
+        samFile, _chrom = check_pysam_chrom(bamfilePath, str(mergedf.loc[geneid]['Chromosome']))
         
-        reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
+        reads = fetch_reads(samFile, _chrom,  mergedf.loc[geneid]['Start'] , mergedf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
+
 
 
         #select according to GX tag and CB (filter according to user owned cell)
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
+        # print("first")
+        # print(reads1_umi)
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
+        # print("second")
+        # print(reads1_umi)
+
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
-        if self.generefdf.loc[geneid]['Strand']=='+':
-            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
-        elif self.generefdf.loc[geneid]['Strand']=='-':
-            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_end, end=r.reference_end+13, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'CCCATATAAGAAA') >3 ]
+        if mergedf.loc[geneid]['Strand']=='+':
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(mergedf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
+        elif mergedf.loc[geneid]['Strand']=='-':
+            reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_end, end=r.reference_end+13, region='chr'+str(mergedf.loc[geneid]['Chromosome'])),'CCCATATAAGAAA') >3 ]
 
+        #print(reads1_umi)
         reads_info=[]
         #filter according to the cateria of SCAFE
-        if self.generefdf.loc[geneid]['Strand']=='+':
+        if mergedf.loc[geneid]['Strand']=='+':
             reads1_umi=[r for r in reads1_umi if r.is_reverse==False]
+            
             reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[9:14],'ATGGG')<=4]
             reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
+            #print([i.cigarstring for i in reads1_umi])
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
+            #print(reads1_umi)
             reads_info=[(r.reference_start,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
         
-        elif self.generefdf.loc[geneid]['Strand']=='-':
+        elif mergedf.loc[geneid]['Strand']=='-':
             reads1_umi=[r for r in reads1_umi if r.is_reverse==True]
+            
             reads1_umi=[r for r in reads1_umi if editdistance.eval(r.query_sequence[-13:-8],'CCCAT')<=4]
             reads1_umi=[r for r in reads1_umi if len(r.cigartuples)>=2]
+            #print([i.cigarstring for i in reads1_umi])
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==0)&(r.cigartuples[0][1]>5)&(r.cigartuples[1][0]==4)&(r.cigartuples[1][1]>6)&(r.cigartuples[1][1]<20)]
+            #print(reads1_umi)
             reads_info=[(r.reference_end,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
+
+        #print(reads_info)
 
 
         
@@ -129,7 +144,9 @@ class get_TSS_count():
 
         mergedf=geneid_uniqdf.merge(self.generefdf,on='gene_id')
         mergedf.set_index('gene_id',inplace=True)
-        #print(mergedf)
+
+        # print(mergedf)
+        # print(self.generefdf)
 
 
 
@@ -139,7 +156,7 @@ class get_TSS_count():
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
         for i in mergedf.index:
             #print(i)
-            results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i)))
+            results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i,mergedf)))
         pool.close()
         pool.join()
         results=[res.get() for res in results]
@@ -257,6 +274,7 @@ class get_TSS_count():
     def _filter_false_positive(self):
 
         altTSSdict=self._do_hierarchial_cluster()      
+        #print(altTSSdict)
         #get testX
         ## get RNA-seq X
         #make a new dictionary
