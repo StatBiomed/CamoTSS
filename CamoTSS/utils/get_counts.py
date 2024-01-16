@@ -40,6 +40,7 @@ class get_TSS_count():
 
     def __init__(self,generefPath,tssrefPath,bamfilePath,fastqFilePath,outdir,cellBarcodePath,nproc,minCount,maxReadCount,clusterDistance,InnerDistance,windowSize,minCTSSCount,minFC):
         self.generefdf=pd.read_csv(generefPath,delimiter='\t')
+        self.generefdf.set_index('gene_id',inplace=True)
         self.generefdf['len']=self.generefdf['End']-self.generefdf['Start']
         self.tssrefdf=pd.read_csv(tssrefPath,delimiter='\t')
         self.bamfilePath=bamfilePath
@@ -65,8 +66,10 @@ class get_TSS_count():
         
 
     def _getreads(self,bamfilePath,fastqFilePath,geneid):
+        #print(self.generefdf)
         #fetch reads1 in gene 
         samFile, _chrom = check_pysam_chrom(bamfilePath, str(self.generefdf.loc[geneid]['Chromosome']))
+        
         reads = fetch_reads(samFile, _chrom,  self.generefdf.loc[geneid]['Start'] , self.generefdf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
 
@@ -77,9 +80,9 @@ class get_TSS_count():
 
         #filter strand invasion
         fastqFile=get_fastq_file(fastqFilePath)
-        if generefdf.loc[geneid]['Strand']=='+':
+        if self.generefdf.loc[geneid]['Strand']=='+':
             reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_start-14, end=r.reference_start-1, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'TTTCTTATATGGG') >3 ]
-        elif generefdf.loc[geneid]['Strand']=='-':
+        elif self.generefdf.loc[geneid]['Strand']=='-':
             reads1_umi=[r for r in reads1_umi if editdistance.eval(fastqFile.fetch(start=r.reference_end, end=r.reference_end+13, region='chr'+str(self.generefdf.loc[geneid]['Chromosome'])),'CCCATATAAGAAA') >3 ]
 
         reads_info=[]
@@ -126,6 +129,7 @@ class get_TSS_count():
 
         mergedf=geneid_uniqdf.merge(self.generefdf,on='gene_id')
         mergedf.set_index('gene_id',inplace=True)
+        #print(mergedf)
 
 
 
@@ -134,6 +138,7 @@ class get_TSS_count():
 
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
         for i in mergedf.index:
+            #print(i)
             results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i)))
         pool.close()
         pool.join()

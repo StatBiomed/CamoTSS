@@ -74,8 +74,8 @@ For the remaining modes, you can check this document_.
    fastaFile = $download/genome.fa
    bamFile= $download/possorted_genome_bam_filtered.bam
    cellbarcodeFile=$download/cellbarcode_to_CamoTSS
-
-   CamoTSS --gtf gtfFile --refFasta fastaFile --bam bamFile -c cellbarcodeFile -o CamoTSS_out --mode TC+CTSS
+        
+   CamoTSS --gtf $gtfFile --refFasta $fastaFile --bam $bamFile -c $cellbarcodeFile -o CamoTSS_out --mode TC+CTSS
 
 
 Alternative TSS or CTSS detecting
