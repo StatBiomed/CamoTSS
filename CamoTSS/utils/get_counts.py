@@ -108,8 +108,8 @@ class get_TSS_count():
             #print([i.cigarstring for i in reads1_umi])
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==4)&(r.cigartuples[0][1]>6)&(r.cigartuples[0][1]<20)&(r.cigartuples[1][0]==0)&(r.cigartuples[1][1]>5)]
             #print(reads1_umi)
-            readsdf=pd.DataFrame({'name':[r.query_name for r in reads1_umi],'PAS':[r.reference_start for r in reads1_umi],'UMI':[r.get_tag('UB') for r in reads1_umi],'CB':[r.get_tag('CB') for r in reads1_umi]})
-            readsdf.sort_values(['UMI','CB','PAS'],inplace=True)
+            readsdf=pd.DataFrame({'name':[r.query_name for r in reads1_umi],'TSS':[r.reference_start for r in reads1_umi],'UMI':[r.get_tag('UB') for r in reads1_umi],'CB':[r.get_tag('CB') for r in reads1_umi]})
+            readsdf.sort_values(['UMI','CB','TSS'],inplace=True)
             groups=readsdf.groupby(['UMI','CB']).head(1)
             reads1_umi=[r for r in reads1_umi if r.query_name in groups['name'].tolist()]
             reads_info=[(r.reference_start,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
@@ -124,8 +124,8 @@ class get_TSS_count():
             reads1_umi=[r for r in reads1_umi if (r.cigartuples[0][0]==0)&(r.cigartuples[0][1]>5)&(r.cigartuples[1][0]==4)&(r.cigartuples[1][1]>6)&(r.cigartuples[1][1]<20)]
             #print(reads1_umi)
 
-            readsdf=pd.DataFrame({'name':[r.query_name for r in reads1_umi],'PAS':[r.reference_end for r in reads1_umi],'UMI':[r.get_tag('UB') for r in reads1_umi],'CB':[r.get_tag('CB') for r in reads1_umi]})
-            readsdf.sort_values(['UMI','CB','PAS'],inplace=True)
+            readsdf=pd.DataFrame({'name':[r.query_name for r in reads1_umi],'TSS':[r.reference_end for r in reads1_umi],'UMI':[r.get_tag('UB') for r in reads1_umi],'CB':[r.get_tag('CB') for r in reads1_umi]})
+            readsdf.sort_values(['UMI','CB','TSS'],inplace=True)
             groups=readsdf.groupby(['UMI','CB']).tail(1)
             reads1_umi=[r for r in reads1_umi if r.query_name in groups['name'].tolist()]
             reads_info=[(r.reference_end,r.get_tag('CB'),r.cigarstring) for r in reads1_umi]
