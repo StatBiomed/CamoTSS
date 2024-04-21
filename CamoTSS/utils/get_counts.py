@@ -72,22 +72,17 @@ class get_TSS_count():
         
         reads = fetch_reads(samFile, _chrom,  mergedf.loc[geneid]['Start'] , mergedf.loc[geneid]['End'],  trimLen_max=100)
         reads1_umi = reads["reads1"]
-
-
-
-
-
-
+        print(reads1_umi)
 
 
 
         #select according to GX tag and CB (filter according to user owned cell)
         reads1_umi=[r for r in reads1_umi if r.get_tag('GX')==geneid]
-        # print("first")
-        # print(reads1_umi)
+        print("first")
+        print(reads1_umi)
         reads1_umi=[r for r in reads1_umi if r.get_tag('CB') in self.cellBarcode]
-        # print("second")
-        # print(reads1_umi)
+        print("second")
+        print(reads1_umi)
 
 
         #filter strand invasion
@@ -156,12 +151,18 @@ class get_TSS_count():
             geneid=read.get_tag('GX')
             geneidls.append(geneid)
         geneiddf=pd.DataFrame(geneidls,columns=['gene_id'])
+        print("hi , this is the gene id df ")
+    
         geneid_uniqdf=geneiddf.drop_duplicates('gene_id')
+        print(geneiddf)
+        print("hi, this is the gene refdf")
+        print(self.generefdf)
+
 
         mergedf=geneid_uniqdf.merge(self.generefdf,on='gene_id')
         mergedf.set_index('gene_id',inplace=True)
-
-        # print(mergedf)
+        print("hi, this is the merge df")
+        print(mergedf)
         # print(self.generefdf)
 
 
@@ -171,7 +172,7 @@ class get_TSS_count():
 
         #get reads because pysam object cannot be used for multiprocessing so inputting bam file path 
         for i in mergedf.index:
-            #print(i)
+            print(i)
             results.append(pool.apply_async(self._getreads,(bamfilePath,fastqFilePath,i,mergedf)))
         pool.close()
         pool.join()
@@ -458,6 +459,7 @@ class get_TSS_count():
 
 
     def produce_sclevel(self):
+        print("hi , this is the start")
         ctime=time.time()
         extendls,regiondf=self._TSS_annotation()
         #transcriptdfls=[]
